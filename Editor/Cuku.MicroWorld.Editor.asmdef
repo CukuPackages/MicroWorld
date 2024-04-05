@@ -1,0 +1,17 @@
+{
+    "name": "Cuku.MicroWorld.Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:6bf9d12c8968c4c0e8a1d8545e5deac6",
+        "GUID:4bdfb2239705740718731d0b4d54061d"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
