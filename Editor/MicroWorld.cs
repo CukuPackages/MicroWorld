@@ -1,5 +1,7 @@
 using JBooth.MicroSplat;
 using JBooth.MicroVerseCore;
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,16 +9,18 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Splines;
 
 namespace Cuku.MicroWorld
 {
-    public class MicroWorldTerrain : MonoBehaviour
+    public class MicroWorld
     {
-        [MenuItem("MicroWorld/Terrain/Create Terrain From Terrain Data", priority = 1)]
+        #region Terrain
+
+        [MenuItem(nameof(MicroWorld) + "/Create Terrain From Terrain Data", priority = 1)]
         static void CreateTerrainFromTerrainData()
         {
-            // Filter the selected objects to get only the TerrainData assets
-            var terrainDataAssets = System.Array.FindAll(Selection.objects, obj => obj is TerrainData)
+            var terrainDataAssets = Array.FindAll(Selection.objects, obj => obj is TerrainData)
                                                 .Select(obj => obj as TerrainData).ToArray();
 
             if (terrainDataAssets == null || terrainDataAssets.Length == 0)
@@ -91,9 +95,11 @@ namespace Cuku.MicroWorld
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }
 
+        #endregion
+
         #region MicroVerse
 
-        [MenuItem("MicroWorld/Terrain/Convert Terrain To MicroVerse", priority = 2)]
+        [MenuItem(nameof(MicroWorld) + "/Convert Terrain To MicroVerse", priority = 100)]
         static void ConvertTerrainToMicroVerse()
         {
             var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<Terrain>()).ToArray();
@@ -154,7 +160,7 @@ namespace Cuku.MicroWorld
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }
 
-        private static void ConvertTerrainDataToHeightmap()
+        static void ConvertTerrainDataToHeightmap()
         {
             var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<Terrain>()).ToArray();
             var terrainsData = terrains.Select(t => t.terrainData).ToArray();
@@ -257,39 +263,8 @@ namespace Cuku.MicroWorld
             File.WriteAllBytes(filePath, tiffBytes);
 
             // Destroy the temporary texture
-            DestroyImmediate(texture);
+            UnityEngine.Object.DestroyImmediate(texture);
         }
-
-        #endregion
-
-        #region MicroSplat
-
-        [MenuItem("MicroWorld/Terrain/Set Tint Texture To MicroSplat Terrain", priority = 3)]
-        static void SetTintTextureToMicroSplatTerrain()
-        {
-            var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<MicroSplatTerrain>()).ToArray();
-            if (terrains.Length == 0)
-            {
-                Debug.LogError($"Select Objects with '{nameof(MicroSplatTerrain)}' component!");
-                return;
-            }
-
-            foreach (var msTerrain in terrains)
-            {
-                var terrainData = msTerrain.terrain.terrainData;
-                if (terrainData == null)
-                {
-                    Debug.LogError($"{msTerrain.name} has invalid Terrain Data");
-                    continue;
-                }
-                var textureAbsolutePath = $"{Path.Combine(Directory.GetParent(Directory.GetParent(AssetDatabase.GetAssetPath(terrainData)).FullName).FullName, nameof(Texture), $"{terrainData.name.Replace("D", "T")}.jpg")}";
-                msTerrain.tintMapOverride = AssetDatabase.LoadAssetAtPath<Texture2D>(textureAbsolutePath.Substring(textureAbsolutePath.IndexOf("Assets")));
-            }
-
-            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-        }
-
-        #endregion
 
         static void DuplicateDirectory(string sourceDirPath, string destinationDirPath)
         {
@@ -318,5 +293,98 @@ namespace Cuku.MicroWorld
                 DuplicateDirectory(subDirectory, destinationSubDirPath);
             }
         }
+
+        #endregion
+
+        #region MicroSplat
+
+        [MenuItem(nameof(MicroWorld) + "/Set Tint Texture To MicroSplat Terrain", priority = 200)]
+        static void SetTintTextureToMicroSplatTerrain()
+        {
+            var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<MicroSplatTerrain>()).ToArray();
+            if (terrains.Length == 0)
+            {
+                Debug.LogError($"Select Objects with '{nameof(MicroSplatTerrain)}' component!");
+                return;
+            }
+
+            foreach (var msTerrain in terrains)
+            {
+                var terrainData = msTerrain.terrain.terrainData;
+                if (terrainData == null)
+                {
+                    Debug.LogError($"{msTerrain.name} has invalid Terrain Data");
+                    continue;
+                }
+                var textureAbsolutePath = $"{Path.Combine(Directory.GetParent(Directory.GetParent(AssetDatabase.GetAssetPath(terrainData)).FullName).FullName, nameof(Texture), $"{terrainData.name.Replace("D", "T")}.jpg")}";
+                msTerrain.tintMapOverride = AssetDatabase.LoadAssetAtPath<Texture2D>(textureAbsolutePath.Substring(textureAbsolutePath.IndexOf("Assets")));
+            }
+
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+        }
+
+        #endregion
+
+        #region Elements
+
+        [MenuItem(nameof(MicroWorld) + "/Setup Elements", priority = 300)]
+        static void SetupElements()
+        {
+            var dataAssets = Array.FindAll(Selection.objects, obj => obj is Data)
+                                           .Select(obj => obj as Data).ToArray();
+            if (dataAssets.Length != 1)
+            {
+                Debug.LogError($"Select exactly 1 {nameof(Data)} file!");
+                return;
+            }
+            var dataAsset = dataAssets[0];
+            var data = string.Empty;
+            try
+            {
+                data = File.ReadAllText(dataAsset.DataPath());
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Can't extract data: " + e.Message);
+            }
+            LatLon[][] latLons = default;
+            try
+            {
+                latLons = JsonConvert.DeserializeObject<LatLon[][]>(data);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError("Extracted data is invalid: " + e.Message);
+            }
+
+            var prefab = Array.FindAll(Selection.objects, obj => obj is GameObject)
+                                        .Select(obj => obj as GameObject).ToArray();
+            if (prefab.Length != 1)
+            {
+                Debug.LogError("Select exactly 1 prefab!");
+                return;
+            }
+            if (!prefab[0].GetComponent<SplineContainer>())
+            {
+                Debug.LogError($"Prefab is missing {nameof(SplineContainer)} component!");
+                return;
+            }
+
+            var elementsParent = new GameObject(Path.GetFileNameWithoutExtension(AssetDatabase.GetAssetPath(dataAsset))).transform;
+            var coordinatesScale = dataAsset.Source.CoordinatesScale;
+            foreach (var element in latLons.ToWorldPoints(dataAsset.Source))
+            {
+                var splineContainer = (PrefabUtility.InstantiatePrefab(prefab[0], parent: elementsParent) as GameObject)
+                    .GetComponent<SplineContainer>();
+
+                var spline = new Spline(element.ToKnots());
+                spline.SetTangentMode(TangentMode.Linear);
+                spline.Closed = splineContainer.Spline.Closed;
+                splineContainer.Spline = spline;
+                Utilities.SnapSplineToTerrain(ref splineContainer);
+            }
+        }
+
+        #endregion
     }
 }
