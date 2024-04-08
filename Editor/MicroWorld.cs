@@ -10,11 +10,21 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Splines;
+#if TERRALAND
+using TerraUnity.TerraLand;
+#endif
 
 namespace Cuku.MicroWorld
 {
-    public class MicroWorld
+    public static class MicroWorld
     {
+        #region Paths
+
+        static string MicroVerseTerrainDataPath(this TerrainData terrainData)
+            => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrainData))), nameof(MicroVerse));
+
+        #endregion
+
         #region Terrain
 
         [MenuItem(nameof(MicroWorld) + "/Create Terrain From Terrain Data", priority = 1)]
@@ -119,7 +129,7 @@ namespace Cuku.MicroWorld
 
             // Construct new directory for terrain data asset
             string terrainDirectory = Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrains.First().terrainData));
-            string newTerrainDirectory = Path.Combine(Path.GetDirectoryName(terrainDirectory), nameof(MicroVerse));
+            string newTerrainDirectory = terrains.First().terrainData.MicroVerseTerrainDataPath();
             if (!Directory.Exists(newTerrainDirectory))
                 DuplicateDirectory(terrainDirectory, newTerrainDirectory);
 
@@ -127,6 +137,8 @@ namespace Cuku.MicroWorld
             foreach (string path in assetPaths)
                 AssetDatabase.ImportAsset(AssetDatabase.GUIDToAssetPath(path));
             AssetDatabase.Refresh();
+
+            ExtractTerrainTilesInfo();
 
             string heightmapDirectory = Path.Combine(Path.GetDirectoryName(terrainDirectory), nameof(HeightStamp));
 
@@ -159,6 +171,28 @@ namespace Cuku.MicroWorld
 
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }
+
+#if TERRALAND
+        [MenuItem(nameof(MicroWorld) + "/Extract Terrain Tiles Info", priority = 101)]
+        static void ExtractTerrainTilesInfo()
+        {
+            var tiles = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<TTileInfo>()).ToArray();
+            var data = new Tile[tiles.Length];
+            for (int i = 0; i < data.Length; i++)
+            {
+                var tile = tiles[i];
+                data[i] = new Tile(name: tile.name,
+                    topLeft: new Coordinate(tile.TopLeftLatitude, tile.TopLeftLongitude),
+                    bottomRight: new Coordinate(tile.BottomRightLatitude, tile.BottomRightLongitude));
+            }
+            string newTerrainDirectory = tiles.First().GetComponent<Terrain>().terrainData.MicroVerseTerrainDataPath();
+            if (!Directory.Exists(newTerrainDirectory))
+                Directory.CreateDirectory(newTerrainDirectory);
+            string filePath = Path.Combine(newTerrainDirectory, nameof(Tile) + ".json");
+            File.WriteAllText(filePath, JsonConvert.SerializeObject(data));
+            AssetDatabase.Refresh();
+        }
+#endif
 
         static void ConvertTerrainDataToHeightmap()
         {
@@ -231,7 +265,6 @@ namespace Cuku.MicroWorld
                     resolution = (int)Mathf.Sqrt(heightmapData.Length);
                 SaveHeightmapToFile(heightmapData, path);
             }
-
             AssetDatabase.Refresh();
 
             foreach (var asset in assetPaths)
@@ -244,7 +277,6 @@ namespace Cuku.MicroWorld
                 defaultPlatform.format = TextureImporterFormat.R16;
                 importer.SetPlatformTextureSettings(defaultPlatform);
             }
-
             AssetDatabase.Refresh();
         }
 
@@ -257,12 +289,9 @@ namespace Cuku.MicroWorld
             for (int i = 0; i < heightmapData.Length; i++)
                 colors[i] = new Color32((byte)(heightmapData[i] >> 8), (byte)(heightmapData[i] & 0xFF), 0, 255);
             texture.SetPixels32(colors);
-
             // Encode the texture to a TIFF file
             byte[] tiffBytes = texture.EncodeToTGA();
             File.WriteAllBytes(filePath, tiffBytes);
-
-            // Destroy the temporary texture
             UnityEngine.Object.DestroyImmediate(texture);
         }
 
@@ -330,11 +359,11 @@ namespace Cuku.MicroWorld
         [MenuItem(nameof(MicroWorld) + "/Setup Elements", priority = 300)]
         static void SetupElements()
         {
-            var dataAssets = Array.FindAll(Selection.objects, obj => obj is Data)
-                                           .Select(obj => obj as Data).ToArray();
+            var dataAssets = Array.FindAll(Selection.objects, obj => obj is Extractor)
+                                           .Select(obj => obj as Extractor).ToArray();
             if (dataAssets.Length != 1)
             {
-                Debug.LogError($"Select exactly 1 {nameof(Data)} file!");
+                Debug.LogError($"Select exactly 1 {nameof(Extractor)} file!");
                 return;
             }
             var dataAsset = dataAssets[0];
@@ -347,10 +376,10 @@ namespace Cuku.MicroWorld
             {
                 Debug.LogError("Can't extract data: " + e.Message);
             }
-            LatLon[][] latLons = default;
+            Coordinate[][] elements = default;
             try
             {
-                latLons = JsonConvert.DeserializeObject<LatLon[][]>(data);
+                elements = JsonConvert.DeserializeObject<Coordinate[][]>(data);
             }
             catch (Exception e)
             {
@@ -371,12 +400,12 @@ namespace Cuku.MicroWorld
             }
 
             var elementsParent = new GameObject(Path.GetFileNameWithoutExtension(AssetDatabase.GetAssetPath(dataAsset))).transform;
-            var coordinatesScale = dataAsset.Source.CoordinatesScale;
-            foreach (var element in latLons.ToWorldPoints(dataAsset.Source))
+            var tiles = JsonConvert.DeserializeObject<Tile[]>(
+                File.ReadAllText(Path.Combine(GameObject.FindFirstObjectByType<Terrain>().terrainData.MicroVerseTerrainDataPath(), nameof(Tile) + ".json")));
+            foreach (var element in elements.ToWorldPoints(tiles))
             {
                 var splineContainer = (PrefabUtility.InstantiatePrefab(prefab[0], parent: elementsParent) as GameObject)
                     .GetComponent<SplineContainer>();
-
                 var spline = new Spline(element.ToKnots());
                 spline.SetTangentMode(TangentMode.Linear);
                 spline.Closed = splineContainer.Spline.Closed;

@@ -5,8 +5,8 @@ using UnityEditor;
 
 namespace Cuku.MicroWorld
 {
-    [CreateAssetMenu(menuName = nameof(OSM) + "/" + nameof(Data) + " Extractor")]
-    public class Data : ScriptableObject
+    [CreateAssetMenu(menuName = nameof(OSM) + "/" + nameof(Extractor))]
+    public class Extractor : ScriptableObject
     {
         public Source Source = default;
         public Element[] Elements = default;

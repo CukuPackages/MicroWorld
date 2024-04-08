@@ -8,18 +8,13 @@ using System.Linq;
 using OsmSharp;
 using System.Collections.Generic;
 using UnityEngine.Splines;
-using ProjNet.CoordinateSystems;
-using ProjNet.CoordinateSystems.Transformations;
 using UnityEditor;
 
 namespace Cuku.MicroWorld
 {
     public static class OSM
     {
-        // Coordinate System use by OSM
-        static GeographicCoordinateSystem osmCoordinateSystem = GeographicCoordinateSystem.WGS84;
-
-        public static LatLon[][] ExtractElementsPoints(this Element[] elements, Source source)
+        public static Coordinate[][] ExtractElementsPoints(this Element[] elements, Source source)
         {
             using (var fileStream = source.LoadData())
             {
@@ -43,7 +38,7 @@ namespace Cuku.MicroWorld
                     foreach (CompleteWay way in completeWays)
                         elementsNodes.Add(way.Nodes);
                 }
-                return elementsNodes.GetLatLon();
+                return elementsNodes.GetCoordinates();
             }
         }
 
@@ -52,8 +47,8 @@ namespace Cuku.MicroWorld
 
         internal static float4 ToBox(this Source source)
         {
-            var centerLat = source.Lat;
-            var centerLon = source.Lon;
+            var centerLat = source.CenterCoordinates.Lat;
+            var centerLon = source.CenterCoordinates.Lon;
             var size = source.Size / 2.0f;
             // Convert size from kilometers to degrees (approximation)
             float deltaLatDegrees = size.y / 111.32f; // 1 degree of latitude is approximately 111.32 km
@@ -64,56 +59,69 @@ namespace Cuku.MicroWorld
                 (float)centerLat - deltaLatDegrees);
         }
 
-        internal static LatLon[][] GetLatLon(this List<Node[]> elementsNodes)
+        internal static Coordinate[][] GetCoordinates(this List<Node[]> elementsNodes)
         {
-            var elementsPoints = new LatLon[elementsNodes.Count][];
+            var elementsPoints = new Coordinate[elementsNodes.Count][];
             for (int i = 0; i < elementsNodes.Count; i++)
             {
                 var elementNodes = elementsNodes[i];
-                elementsPoints[i] = new LatLon[elementNodes.Length];
+                elementsPoints[i] = new Coordinate[elementNodes.Length];
                 for (int j = 0; j < elementNodes.Length; j++)
                 {
                     var node = elementNodes[j];
-                    elementsPoints[i][j] = new LatLon(node.Latitude.Value, node.Longitude.Value);
+                    elementsPoints[i][j] = new Coordinate(node.Latitude.Value, node.Longitude.Value);
                 }
             }
             return elementsPoints;
         }
 
-        internal static float3[][] ToWorldPoints(this LatLon[][] latLons, Source source)
+        internal static float3[][] ToWorldPoints(this Coordinate[][] elements, Tile[] tiles)
         {
-            var origin = (new double[] { source.Lat, source.Lon }).Transform(source.CoordinateSystem);
-            var shift = source.TerrainShift;
-            var scale = source.CoordinatesScale;
-            //var origin = new double[] { source.Lat, source.Lon };
-
-            var elementsPoints = new float3[latLons.Length][];
-            for (int i = 0; i < latLons.Length; i++)
+            var worldElement = new float3[elements.Length][];
+            for (int i = 0; i < elements.Length; i++)
             {
-                var elementNodes = latLons[i];
-                elementsPoints[i] = new float3[elementNodes.Length];
-                for (int j = 0; j < elementNodes.Length; j++)
-                {
-                    var node = elementNodes[j];
-                    var normalizedPoint = (new double[] { node.Lat, node.Lon }).Transform(source.CoordinateSystem);
-                    //var normalizedPoint = new double[] { node.Lat, node.Lon };
-                    var point = new double[]
-                    {
-                        normalizedPoint[0] - origin[0],
-                        normalizedPoint[1] - origin[1]
-                    };
-                    elementsPoints[i][j] = new float3((float)point[1] * scale.x + shift.x, 0, (float)point[0] * scale.y + shift.y);
-                    //elementsPoints[i][j] = new float3((float)point[1], 0, (float)point[0]) * 100000;
-                }
+                var elementPoints = elements[i];
+                worldElement[i] = new float3[elementPoints.Length];
+                for (int j = 0; j < elementPoints.Length; j++)
+                    worldElement[i][j] = elementPoints[j].ToTerrainPosition(tiles);
             }
-            return elementsPoints;
+            return worldElement;
         }
 
-        internal static double[] Transform(this double[] latLon, string coordinateSystem)
-            => new CoordinateTransformationFactory()
-            .CreateFromCoordinateSystems(osmCoordinateSystem, ProjectedCoordinateSystem.WebMercator)
-            //.CreateFromCoordinateSystems(osmCoordinateSystem, new CoordinateSystemFactory().CreateFromWkt(coordinateSystem))
-            .MathTransform.Transform(latLon);
+        static Vector3 ToTerrainPosition(this Coordinate coordinate, Tile[] tiles)
+        {
+            (Tile tile, Terrain terrain) = coordinate.FindTileTerrainPair(tiles);
+            double minLat = tile.BottomRight.Lat;
+            double maxLat = tile.TopLeft.Lat;
+            double minLon = tile.TopLeft.Lon;
+            double maxLon = tile.BottomRight.Lon;
+            // Calculate relative position with respect to the terrain's bounding box
+            double relativeX = (coordinate.Lon - minLon) / (maxLon - minLon);
+            double relativeZ = (coordinate.Lat - minLat) / (maxLat - minLat);
+            // Convert to Unity terrain position
+            Vector3 terrainSize = terrain.terrainData.size;
+            Vector3 terrainPosition = terrain.transform.position;
+            double posX = relativeX * terrainSize.x + terrainPosition.x;
+            double posZ = relativeZ * terrainSize.z + terrainPosition.z;
+            // Y-position based on actual terrain height
+            double posY = terrain.SampleHeight(new Vector3((float)posX, 0, (float)posZ)) + terrainPosition.y;
+            return new Vector3((float)posX, (float)posY, (float)posZ);
+        }
+
+        internal static (Tile tile, Terrain terrain) FindTileTerrainPair(this Coordinate coordinate, Tile[] tiles)
+        {
+            foreach (var tile in tiles)
+            {
+                if (coordinate.Lat <= tile.TopLeft.Lat &&
+                    coordinate.Lat >= tile.BottomRight.Lat &&
+                    coordinate.Lon >= tile.TopLeft.Lon &&
+                    coordinate.Lon <= tile.BottomRight.Lon)
+                    return (tile,
+                        GameObject.FindObjectsByType<Terrain>(FindObjectsSortMode.None)
+                        .FirstOrDefault(terrain => terrain.name.Contains(tile.Name)));
+            }
+            return default;
+        }
 
         internal static BezierKnot[] ToKnots(this float3[] points)
         {
@@ -122,5 +130,7 @@ namespace Cuku.MicroWorld
                 bezierKnots[i] = new BezierKnot(points[i]);
             return bezierKnots;
         }
+
+
     }
 }

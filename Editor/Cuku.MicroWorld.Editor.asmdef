@@ -7,7 +7,8 @@
         "GUID:6bf9d12c8968c4c0e8a1d8545e5deac6",
         "GUID:4bdfb2239705740718731d0b4d54061d",
         "GUID:21d1eb854b91ade49bc69a263d12bee2",
-        "GUID:7ddf640fd36739d4a84e6f2edda04d93"
+        "GUID:7ddf640fd36739d4a84e6f2edda04d93",
+        "GUID:e722a5601bcacb74c906f0a6d439a338"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -23,8 +24,7 @@
         "GeoAPI.dll",
         "OsmSharp.Geo.dll",
         "NetTopologySuite.Features.dll",
-        "NetTopologySuite.IO.GeoJSON.dll",
-        "ProjNET.dll"
+        "NetTopologySuite.IO.GeoJSON.dll"
     ],
     "autoReferenced": true,
     "defineConstraints": [],
