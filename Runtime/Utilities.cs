@@ -10,7 +10,7 @@ namespace Cuku.MicroWorld
     {
         #region Spline
 
-        public static BezierKnot[] ToBezierKnots(this float3[] points)
+        public static BezierKnot[] ToKnots(this float3[] points)
         {
             var bezierKnots = new BezierKnot[points.Length];
             for (int i = 0; i < points.Length; i++)
@@ -18,7 +18,7 @@ namespace Cuku.MicroWorld
             return bezierKnots;
         }
 
-        public static void ShiftSplineKnots(ref SplineContainer splineContainer, Vector3 shift)
+        public static void ShiftKnots(ref SplineContainer splineContainer, Vector3 shift)
         {
             var shiftAmmount = (float3)shift;
             foreach (var spline in splineContainer.Splines)

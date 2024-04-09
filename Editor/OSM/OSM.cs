@@ -13,17 +13,17 @@ namespace Cuku.MicroWorld
 {
     public static class OSM
     {
-        public static Coordinate[][] ExtractElementsPoints(this Element[] elements, Source source)
+        public static Coordinate[][] ExtractElements(this Element[] elements, Source source)
         {
             using (var fileStream = source.LoadData())
             {
-                var box = source.ToBox();
-                var streamSource = new PBFOsmStreamSource(fileStream).FilterBox(box.x, box.y, box.z, box.w);
+                var box = source.ToBoundingBox();
+                var stream = new PBFOsmStreamSource(fileStream).FilterBox(box.x, box.y, box.z, box.w);
 
-                var elementsNodes = new List<Node[]>();
+                var nodes = new List<Node[]>();
                 foreach (var element in elements)
                 {
-                    var filtered = from osmGeo in streamSource
+                    var filtered = from osmGeo in stream
                                    where osmGeo.Type == OsmGeoType.Node ||
                                         (osmGeo.Type == OsmGeoType.Way && osmGeo.Tags != null && osmGeo.Tags.Contains(element.Key, element.Value))
                                    select osmGeo;
@@ -35,16 +35,16 @@ namespace Cuku.MicroWorld
 
                     var completeWays = ways.Cast<CompleteWay>();
                     foreach (CompleteWay way in completeWays)
-                        elementsNodes.Add(way.Nodes);
+                        nodes.Add(way.Nodes);
                 }
-                return elementsNodes.GetCoordinates();
+                return nodes.GetCoordinates();
             }
         }
 
         internal static FileStream LoadData(this Source source)
             => File.OpenRead(Path.Combine(Application.streamingAssetsPath, source.Data));
 
-        internal static float4 ToBox(this Source source)
+        internal static float4 ToBoundingBox(this Source source)
         {
             var centerLat = source.CenterCoordinates.Lat;
             var centerLon = source.CenterCoordinates.Lon;
