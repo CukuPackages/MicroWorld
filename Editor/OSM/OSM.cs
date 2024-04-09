@@ -7,7 +7,6 @@ using OsmSharp.Streams;
 using System.Linq;
 using OsmSharp;
 using System.Collections.Generic;
-using UnityEngine.Splines;
 using UnityEditor;
 
 namespace Cuku.MicroWorld
@@ -34,7 +33,7 @@ namespace Cuku.MicroWorld
                                where osmGeo.Type == OsmGeoType.Way
                                select osmGeo;
 
-                    IEnumerable<CompleteWay> completeWays = ways.Cast<CompleteWay>();
+                    var completeWays = ways.Cast<CompleteWay>();
                     foreach (CompleteWay way in completeWays)
                         elementsNodes.Add(way.Nodes);
                 }
@@ -59,53 +58,53 @@ namespace Cuku.MicroWorld
                 (float)centerLat - deltaLatDegrees);
         }
 
-        internal static Coordinate[][] GetCoordinates(this List<Node[]> elementsNodes)
+        internal static Coordinate[][] GetCoordinates(this List<Node[]> elements)
         {
-            var elementsPoints = new Coordinate[elementsNodes.Count][];
-            for (int i = 0; i < elementsNodes.Count; i++)
+            var coordinates = new Coordinate[elements.Count][];
+            for (int i = 0; i < elements.Count; i++)
             {
-                var elementNodes = elementsNodes[i];
-                elementsPoints[i] = new Coordinate[elementNodes.Length];
-                for (int j = 0; j < elementNodes.Length; j++)
+                var points = elements[i];
+                coordinates[i] = new Coordinate[points.Length];
+                for (int j = 0; j < points.Length; j++)
                 {
-                    var node = elementNodes[j];
-                    elementsPoints[i][j] = new Coordinate(node.Latitude.Value, node.Longitude.Value);
+                    var point = points[j];
+                    coordinates[i][j] = new Coordinate(point.Latitude.Value, point.Longitude.Value);
                 }
             }
-            return elementsPoints;
+            return coordinates;
         }
 
-        internal static float3[][] ToWorldPoints(this Coordinate[][] elements, Tile[] tiles)
+        internal static float3[][] ToWorldPoints(this Coordinate[][] element, Tile[] tiles)
         {
-            var worldElement = new float3[elements.Length][];
-            for (int i = 0; i < elements.Length; i++)
+            var worldElement = new float3[element.Length][];
+            for (int i = 0; i < element.Length; i++)
             {
-                var elementPoints = elements[i];
-                worldElement[i] = new float3[elementPoints.Length];
-                for (int j = 0; j < elementPoints.Length; j++)
-                    worldElement[i][j] = elementPoints[j].ToTerrainPosition(tiles);
+                var points = element[i];
+                worldElement[i] = new float3[points.Length];
+                for (int j = 0; j < points.Length; j++)
+                    worldElement[i][j] = points[j].ToTerrainPosition(tiles);
             }
             return worldElement;
         }
 
-        static Vector3 ToTerrainPosition(this Coordinate coordinate, Tile[] tiles)
+        internal static float3 ToTerrainPosition(this Coordinate coordinate, Tile[] tiles)
         {
             (Tile tile, Terrain terrain) = coordinate.FindTileTerrainPair(tiles);
-            double minLat = tile.BottomRight.Lat;
-            double maxLat = tile.TopLeft.Lat;
-            double minLon = tile.TopLeft.Lon;
-            double maxLon = tile.BottomRight.Lon;
+            var minLat = tile.BottomRight.Lat;
+            var maxLat = tile.TopLeft.Lat;
+            var minLon = tile.TopLeft.Lon;
+            var maxLon = tile.BottomRight.Lon;
             // Calculate relative position with respect to the terrain's bounding box
-            double relativeX = (coordinate.Lon - minLon) / (maxLon - minLon);
-            double relativeZ = (coordinate.Lat - minLat) / (maxLat - minLat);
+            var relativeX = (coordinate.Lon - minLon) / (maxLon - minLon);
+            var relativeZ = (coordinate.Lat - minLat) / (maxLat - minLat);
             // Convert to Unity terrain position
-            Vector3 terrainSize = terrain.terrainData.size;
-            Vector3 terrainPosition = terrain.transform.position;
-            double posX = relativeX * terrainSize.x + terrainPosition.x;
-            double posZ = relativeZ * terrainSize.z + terrainPosition.z;
+            var terrainSize = terrain.terrainData.size;
+            var terrainPosition = terrain.transform.position;
+            var posX = relativeX * terrainSize.x + terrainPosition.x;
+            var posZ = relativeZ * terrainSize.z + terrainPosition.z;
             // Y-position based on actual terrain height
             double posY = terrain.SampleHeight(new Vector3((float)posX, 0, (float)posZ)) + terrainPosition.y;
-            return new Vector3((float)posX, (float)posY, (float)posZ);
+            return new float3((float)posX, (float)posY, (float)posZ);
         }
 
         internal static (Tile tile, Terrain terrain) FindTileTerrainPair(this Coordinate coordinate, Tile[] tiles)
@@ -122,15 +121,5 @@ namespace Cuku.MicroWorld
             }
             return default;
         }
-
-        internal static BezierKnot[] ToKnots(this float3[] points)
-        {
-            var bezierKnots = new BezierKnot[points.Length];
-            for (int i = 0; i < points.Length; i++)
-                bezierKnots[i] = new BezierKnot(points[i]);
-            return bezierKnots;
-        }
-
-
     }
 }
