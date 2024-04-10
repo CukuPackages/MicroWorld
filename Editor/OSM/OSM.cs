@@ -19,25 +19,33 @@ namespace Cuku.MicroWorld
             {
                 var box = source.ToBoundingBox();
                 var stream = new PBFOsmStreamSource(fileStream).FilterBox(box.x, box.y, box.z, box.w);
-
-                var nodes = new List<Node[]>();
-                foreach (var element in elements)
-                {
-                    var filtered = (from osmGeo in stream
-                                    where osmGeo.Type == OsmGeoType.Node ||
-                                         (osmGeo.Type == OsmGeoType.Way && osmGeo.Tags != null && osmGeo.Tags.Contains(element.Key, element.Value))
-                                    select osmGeo).ToList();
-
-                    var completes = filtered.ToComplete();
-                    var ways = from osmGeo in completes
-                               where osmGeo.Type == OsmGeoType.Way
-                               select osmGeo;
-
-                    var completeWays = ways.Cast<CompleteWay>();
-                    foreach (CompleteWay way in completeWays)
-                        nodes.Add(way.Nodes);
-                }
-                return nodes.GetCoordinates();
+                // Extract elemenst
+                var osmGeos = (from osmGeo in stream
+                               from element in elements
+                               where osmGeo.Type == OsmGeoType.Node ||
+                                     (osmGeo.Type == OsmGeoType.Way && osmGeo.Tags != null && osmGeo.Tags.Contains(element.Key, element.Value)) ||
+                                     (osmGeo.Type == OsmGeoType.Relation && osmGeo.Tags != null && osmGeo.Tags.Contains(element.Key, element.Value))
+                               select osmGeo).ToList();
+                // Extract outer way members
+                var outerWayMembers = osmGeos.Where(osmGeo => osmGeo.Type == OsmGeoType.Relation)
+                    .SelectMany(osmGeo => (osmGeo as Relation)?.Members
+                    .Where(member => member.Type == OsmGeoType.Way && member.Role == "outer")
+                    .Select(member => member.Id)).ToList();
+                var outerWays = (from osmGeo in stream
+                                 where osmGeo.Type == OsmGeoType.Way && outerWayMembers.Contains(osmGeo.Id.Value)
+                                 select osmGeo).ToList();
+                osmGeos.AddRange(outerWays);
+                // Extract ways
+                var completes = osmGeos.ToComplete();
+                var ways = from osmGeo in completes
+                           where osmGeo.Type == OsmGeoType.Way
+                           select osmGeo;
+                var completeWays = ways.Cast<CompleteWay>();
+                // Extract way nodes
+                var geoElements = new List<Node[]>();
+                foreach (CompleteWay way in completeWays)
+                    geoElements.Add(way.Nodes);
+                return geoElements.GetCoordinates();
             }
         }
 
