@@ -23,10 +23,10 @@ namespace Cuku.MicroWorld
                 var nodes = new List<Node[]>();
                 foreach (var element in elements)
                 {
-                    var filtered = from osmGeo in stream
-                                   where osmGeo.Type == OsmGeoType.Node ||
-                                        (osmGeo.Type == OsmGeoType.Way && osmGeo.Tags != null && osmGeo.Tags.Contains(element.Key, element.Value))
-                                   select osmGeo;
+                    var filtered = (from osmGeo in stream
+                                    where osmGeo.Type == OsmGeoType.Node ||
+                                         (osmGeo.Type == OsmGeoType.Way && osmGeo.Tags != null && osmGeo.Tags.Contains(element.Key, element.Value))
+                                    select osmGeo).ToList();
 
                     var completes = filtered.ToComplete();
                     var ways = from osmGeo in completes
@@ -116,7 +116,7 @@ namespace Cuku.MicroWorld
                     coordinate.Lon >= tile.TopLeft.Lon &&
                     coordinate.Lon <= tile.BottomRight.Lon)
                     return (tile,
-                        GameObject.FindObjectsByType<Terrain>(FindObjectsSortMode.None)
+                        GameObject.FindObjectsByType<Terrain>(FindObjectsInactive.Include, FindObjectsSortMode.None)
                         .FirstOrDefault(terrain => terrain.name.Contains(tile.Name)));
             }
             return default;

@@ -10,9 +10,9 @@ GameObject:
   m_Component:
   - component: {fileID: 7365226603864089991}
   - component: {fileID: -2976491447385739905}
-  - component: {fileID: 3121472398127320492}
+  - component: {fileID: -2682025031108497637}
   m_Layer: 0
-  m_Name: MicroWorldBiome
+  m_Name: Vegetation
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -73,7 +73,7 @@ MonoBehaviour:
       m_Data: []
   m_Knots:
     m_KnotsLink: []
---- !u!114 &3121472398127320492
+--- !u!114 &-2682025031108497637
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -82,7 +82,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 3045805427923346174}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ed08681e93a7fe947afb6e30a3ec3747, type: 3}
+  m_Script: {fileID: 11500000, guid: 519766cbe532ded4dab9af7c96f4b80c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Biome: {fileID: 0}
+  Content: {fileID: 0}
+  ContentInstance: {fileID: 0}
+  ContentArea: {fileID: 0}

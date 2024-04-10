@@ -1,5 +1,6 @@
 using JBooth.MicroSplat;
 using JBooth.MicroVerseCore;
+using JBooth.FoliageRendering;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -31,7 +32,7 @@ namespace Cuku.MicroWorld
         static void CreateTerrainFromTerrainData()
         {
             var terrainDataAssets = Array.FindAll(Selection.objects, obj => obj is TerrainData)
-                                                .Select(obj => obj as TerrainData).ToArray();
+                .Select(obj => obj as TerrainData).ToArray();
 
             if (terrainDataAssets == null || terrainDataAssets.Length == 0)
             {
@@ -130,15 +131,18 @@ namespace Cuku.MicroWorld
             // Construct new directory for terrain data asset
             string terrainDirectory = Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrains.First().terrainData));
             string newTerrainDirectory = terrains.First().terrainData.MicroVerseTerrainDataPath();
-            if (!Directory.Exists(newTerrainDirectory))
+            if (Directory.Exists(newTerrainDirectory))
+                Debug.Log("Terrain data is already extracted!");
+            else
+            {
                 DuplicateDirectory(terrainDirectory, newTerrainDirectory);
+                ExtractTerrainTilesInfo();
+            }
 
             string[] assetPaths = AssetDatabase.FindAssets("", new string[] { newTerrainDirectory });
             foreach (string path in assetPaths)
                 AssetDatabase.ImportAsset(AssetDatabase.GUIDToAssetPath(path));
             AssetDatabase.Refresh();
-
-            ExtractTerrainTilesInfo();
 
             string heightmapDirectory = Path.Combine(Path.GetDirectoryName(terrainDirectory), nameof(HeightStamp));
 
@@ -204,6 +208,14 @@ namespace Cuku.MicroWorld
                 return;
             }
 
+            var terrainDirectory = Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrainsData[0]));
+            var heightmapDirectory = Path.Combine(Path.GetDirectoryName(terrainDirectory), nameof(HeightStamp));
+            if (Directory.Exists(terrainDirectory))
+            {
+                Debug.Log("Heightmaps are already extracted!");
+                return;
+            }
+
             // Collect heights from all terrains
             List<float[,]> allHeights = new List<float[,]>();
             foreach (var terrainData in terrainsData)
@@ -223,9 +235,6 @@ namespace Cuku.MicroWorld
                 minHeight = Mathf.Min(minHeight, minFloat);
                 maxHeight = Mathf.Max(maxHeight, maxFloat);
             }
-
-            string terrainDirectory = Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrainsData[0]));
-            string heightmapDirectory = Path.Combine(Path.GetDirectoryName(terrainDirectory), nameof(HeightStamp));
 
             var assetPaths = new string[terrainsData.Length];
             int resolution = 2049;
@@ -360,7 +369,7 @@ namespace Cuku.MicroWorld
         static void SetupElements()
         {
             var dataAssets = Array.FindAll(Selection.objects, obj => obj is Extractor)
-                                           .Select(obj => obj as Extractor).ToArray();
+                .Select(obj => obj as Extractor).ToArray();
             if (dataAssets.Length != 1)
             {
                 Debug.LogError($"Select exactly 1 {nameof(Extractor)} file!");
@@ -386,25 +395,28 @@ namespace Cuku.MicroWorld
                 Debug.LogError("Extracted data is invalid: " + e.Message);
             }
 
-            var prefab = Array.FindAll(Selection.objects, obj => obj is GameObject)
-                                        .Select(obj => obj as GameObject).ToArray();
-            if (prefab.Length != 1)
+            GameObject prefab = default;
+            try
             {
-                Debug.LogError("Select exactly 1 prefab!");
-                return;
+                prefab = Array.FindAll(Selection.objects, obj => obj is GameObject)
+                                           .Select(obj => obj as GameObject).ToArray()[0];
             }
-            if (!prefab[0].GetComponent<SplineContainer>())
+            catch (Exception e)
+            {
+                Debug.LogError($"Select one prefab with {nameof(SplineContainer)} component: " + e.Message);
+            }
+            if (!prefab.GetComponent<SplineContainer>())
             {
                 Debug.LogError($"Prefab is missing {nameof(SplineContainer)} component!");
                 return;
             }
 
             var elementsParent = new GameObject(Path.GetFileNameWithoutExtension(AssetDatabase.GetAssetPath(dataAsset))).transform;
-            var tiles = JsonConvert.DeserializeObject<Tile[]>(
-                File.ReadAllText(Path.Combine(GameObject.FindFirstObjectByType<Terrain>().terrainData.MicroVerseTerrainDataPath(), nameof(Tile) + ".json")));
+            var tiles = JsonConvert.DeserializeObject<Tile[]>(File.ReadAllText(
+                Path.Combine(GameObject.FindFirstObjectByType<Terrain>(FindObjectsInactive.Include).terrainData.MicroVerseTerrainDataPath(), nameof(Tile) + ".json")));
             foreach (var element in elements.ToWorldPoints(tiles))
             {
-                var splineContainer = (PrefabUtility.InstantiatePrefab(prefab[0], parent: elementsParent) as GameObject)
+                var splineContainer = (PrefabUtility.InstantiatePrefab(prefab, parent: elementsParent) as GameObject)
                     .GetComponent<SplineContainer>();
                 var spline = new Spline(element.ToKnots());
                 spline.SetTangentMode(TangentMode.Linear);
@@ -413,6 +425,59 @@ namespace Cuku.MicroWorld
                 Utilities.SnapSplineToTerrain(ref splineContainer);
             }
         }
+
+        #endregion
+
+        #region Vegetation
+
+        [MenuItem(nameof(MicroWorld) + "/Apply Foliage Renderer Settings", priority = 400)]
+        static void ApplyFoliageRendererSettings()
+        {
+            if (!IndirectRenderer.hasInstance && !TerrainFoliageRenderer.hasInstance)
+            {
+                Debug.LogError($"Create Foliage Renderer first!");
+                return;
+            }
+            // Setup Indirect Renderer
+            IndirectRenderer.instance.cullingCamera = Camera.main;
+            IndirectRenderer.instance.hiZOcclusion = IndirectRenderer.ModeToggle.On;
+
+            TerrainFoliageRenderer settings = default;
+            try
+            {
+                settings = Array.FindAll(Selection.objects, obj => obj is GameObject)
+                    .Select(obj => obj as GameObject).ToArray()[0].GetComponent<TerrainFoliageRenderer>();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Select one prefab with {nameof(TerrainFoliageRenderer)} component: " + e.Message);
+            }
+
+            var instance = TerrainFoliageRenderer.instance;
+            instance.treeOptions = settings.treeOptions;
+            instance.detailOptions = settings.detailOptions;
+
+            // Immediately refreshes all tree and detail instances (regardless of distance)
+            foreach (var tfp in GameObject.FindObjectsOfType<TerrainFoliageProvider>())
+            {
+                tfp.forceRefreshOnEnable = true;
+                // Match terrain settings to Foliage Renderer
+                tfp.Terrain.treeDistance = settings.treeOptions.maxDrawDistance;
+                tfp.Terrain.detailObjectDistance = settings.detailOptions.maxDrawDistance;
+                tfp.Terrain.detailObjectDensity = settings.detailOptions.density;
+            }
+        }
+
+        //[MenuItem(nameof(MicroWorld) + "/Clear Vegetation", priority = 401)]
+        //static void ClearVegetation()
+        //{
+        //    foreach (var tfp in GameObject.FindObjectsOfType<TerrainFoliageProvider>(true))
+        //        tfp.forceRefreshOnEnable = false;
+        //    foreach (var biome in GameObject.FindObjectsOfType<SplineArea>(true))
+        //        GameObject.Destroy(biome);
+        //    foreach (var vegetation in GameObject.FindObjectsOfType<TreeStamp>(true))
+        //        GameObject.Destroy(vegetation);
+        //}
 
         #endregion
     }
