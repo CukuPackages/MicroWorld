@@ -13,7 +13,7 @@ namespace Cuku.MicroWorld
 {
     public static class OSM
     {
-        public static Coordinate[][] ExtractElements(this Element[] elements, Source source)
+        public static Coordinate[][] Extract(this Element[] elements, Source source)
         {
             using (var fileStream = source.LoadData())
             {
@@ -52,20 +52,6 @@ namespace Cuku.MicroWorld
         internal static FileStream LoadData(this Source source)
             => File.OpenRead(Path.Combine(Application.streamingAssetsPath, source.Data));
 
-        internal static float4 ToBoundingBox(this Source source)
-        {
-            var centerLat = source.CenterCoordinates.Lat;
-            var centerLon = source.CenterCoordinates.Lon;
-            var size = source.Size / 2.0f;
-            // Convert size from kilometers to degrees (approximation)
-            float deltaLatDegrees = size.y / 111.32f; // 1 degree of latitude is approximately 111.32 km
-            float deltaLonDegrees = size.x / (111.32f * (float)Math.Cos(centerLat * Math.PI / 180.0f)); // Adjust for latitude
-            return new float4((float)centerLon - deltaLonDegrees,
-                (float)centerLat + deltaLatDegrees,
-                (float)centerLon + deltaLonDegrees,
-                (float)centerLat - deltaLatDegrees);
-        }
-
         internal static Coordinate[][] GetCoordinates(this List<Node[]> elements)
         {
             var coordinates = new Coordinate[elements.Count][];
@@ -80,6 +66,20 @@ namespace Cuku.MicroWorld
                 }
             }
             return coordinates;
+        }
+
+        internal static float4 ToBoundingBox(this Source source)
+        {
+            var centerLat = source.CenterCoordinates.Lat;
+            var centerLon = source.CenterCoordinates.Lon;
+            var size = source.Size / 2.0f;
+            // Convert size from kilometers to degrees (approximation)
+            float deltaLatDegrees = size.y / 111.32f; // 1 degree of latitude is approximately 111.32 km
+            float deltaLonDegrees = size.x / (111.32f * (float)Math.Cos(centerLat * Math.PI / 180.0f)); // Adjust for latitude
+            return new float4((float)centerLon - deltaLonDegrees,
+                (float)centerLat + deltaLatDegrees,
+                (float)centerLon + deltaLonDegrees,
+                (float)centerLat - deltaLatDegrees);
         }
 
         internal static float3[][] ToWorldPoints(this Coordinate[][] element, Tile[] tiles)

@@ -33,7 +33,7 @@ namespace Cuku.MicroWorld
 
         public static void SnapSplineToTerrain(ref SplineContainer splineContainer)
         {
-            Terrain[] terrains = Terrain.activeTerrains;
+            var terrains = Terrain.activeTerrains;
             foreach (var spline in splineContainer.Splines)
             {
                 var knots = spline.Knots.ToArray();
@@ -60,29 +60,43 @@ namespace Cuku.MicroWorld
 
         public static void AdaptVolumeToSpline(this Transform target, SplineContainer splineContainer)
         {
-            var points = new List<float3>();
-            foreach (var spline in splineContainer.Splines)
-                foreach (var knot in spline.Knots)
-                    points.Add(knot.Position);
-
-            // Calculate center
-            float3 sum = float3.zero;
-            foreach (float3 point in points)
-                sum += point;
-            float3 center = sum / points.Count;
-
             // Calculate the dimensions of the bounding box
             var min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
             var max = new float3(float.MinValue, float.MinValue, float.MinValue);
-            foreach (float3 point in points)
+            var points = splineContainer.Points();
+            for (int i = 0; i < points.Count; i++)
             {
+                var point = points[i];
                 min = math.min(min, point);
                 max = math.max(max, point);
             }
             var dimensions = max - min;
-
-            target.position = (Vector3)center;
+            target.position = (Vector3)splineContainer.Center();
             target.localScale = new Vector3(dimensions.x, target.localScale.y, dimensions.z);
+        }
+
+        /// <summary>
+        /// Get all <see cref="SplineContainer"/> points.
+        /// </summary>
+        public static List<float3> Points(this SplineContainer splineContainer)
+        {
+            var points = new List<float3>();
+            foreach (var spline in splineContainer.Splines)
+                foreach (var knot in spline.Knots)
+                    points.Add(knot.Position);
+            return points;
+        }
+
+        /// <summary>
+        /// Get <see cref="SplineContainer"/> center of all points.
+        /// </summary>
+        public static float3 Center(this SplineContainer splineContainer)
+        {
+            var points = splineContainer.Points();
+            var sum = float3.zero;
+            foreach (float3 point in points)
+                sum += point;
+            return sum / points.Count;
         }
 
         #endregion

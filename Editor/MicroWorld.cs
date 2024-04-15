@@ -11,6 +11,8 @@ using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.Splines;
+using Unity.Mathematics;
+
 #if TERRALAND
 using TerraUnity.TerraLand;
 #endif
@@ -21,15 +23,18 @@ namespace Cuku.MicroWorld
     {
         #region Paths
 
-        static string MicroVerseTerrainDataPath(this TerrainData terrainData)
-            => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrainData))), nameof(MicroVerse));
+        internal static string MicroVerseTerrainDataPath(this TerrainData terrainData)
+             => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrainData))), nameof(MicroVerse));
 
         #endregion
 
         #region Terrain
 
+        /// <summary>
+        /// Select TerrainData assets from the Project and it will create Terrain GameObjects in the scene.
+        /// </summary>
         [MenuItem(nameof(MicroWorld) + "/Create Terrain From Terrain Data", priority = 1)]
-        static void CreateTerrainFromTerrainData()
+        internal static void CreateTerrainFromTerrainData()
         {
             var terrainDataAssets = Array.FindAll(Selection.objects, obj => obj is TerrainData)
                 .Select(obj => obj as TerrainData).ToArray();
@@ -110,8 +115,11 @@ namespace Cuku.MicroWorld
 
         #region MicroVerse
 
+        /// <summary>
+        /// Select terrain or terrains parent GameObject in the Scene and it will setup MicroVerse.
+        /// </summary>
         [MenuItem(nameof(MicroWorld) + "/Convert Terrain To MicroVerse", priority = 100)]
-        static void ConvertTerrainToMicroVerse()
+        internal static void ConvertTerrainToMicroVerse()
         {
             var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<Terrain>()).ToArray();
             if (terrains.Length == 0)
@@ -177,8 +185,11 @@ namespace Cuku.MicroWorld
         }
 
 #if TERRALAND
+        /// <summary>
+        /// Select terrain or terrains parent GameObject in the Scene and extract the data to a JSON file for further processing.
+        /// </summary>
         [MenuItem(nameof(MicroWorld) + "/Extract Terrain Tiles Info", priority = 101)]
-        static void ExtractTerrainTilesInfo()
+        internal static void ExtractTerrainTilesInfo()
         {
             var tiles = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<TTileInfo>()).ToArray();
             var data = new Tile[tiles.Length];
@@ -198,7 +209,10 @@ namespace Cuku.MicroWorld
         }
 #endif
 
-        static void ConvertTerrainDataToHeightmap()
+        /// <summary>
+        /// Converts TerrainData to Heightmaps and saves in a parallel location.
+        /// </summary>
+        internal static void ConvertTerrainDataToHeightmap()
         {
             var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<Terrain>()).ToArray();
             var terrainsData = terrains.Select(t => t.terrainData).ToArray();
@@ -289,7 +303,7 @@ namespace Cuku.MicroWorld
             AssetDatabase.Refresh();
         }
 
-        static void SaveHeightmapToFile(ushort[] heightmapData, string filePath)
+        internal static void SaveHeightmapToFile(ushort[] heightmapData, string filePath)
         {
             // Create a Texture2D from heightmap data
             int resolution = (int)Mathf.Sqrt(heightmapData.Length);
@@ -304,7 +318,7 @@ namespace Cuku.MicroWorld
             UnityEngine.Object.DestroyImmediate(texture);
         }
 
-        static void DuplicateDirectory(string sourceDirPath, string destinationDirPath)
+        internal static void DuplicateDirectory(string sourceDirPath, string destinationDirPath)
         {
             if (!Directory.Exists(destinationDirPath))
                 Directory.CreateDirectory(destinationDirPath);
@@ -336,8 +350,12 @@ namespace Cuku.MicroWorld
 
         #region MicroSplat
 
+        /// <summary>
+        /// Select terrain or terrain parent GameObjects in Scene and it will set the texture
+        /// (located in a parallel location) as the Tint Map for MicroSplat Global Texturing.
+        /// </summary>
         [MenuItem(nameof(MicroWorld) + "/Set Tint Texture To MicroSplat Terrain", priority = 200)]
-        static void SetTintTextureToMicroSplatTerrain()
+        internal static void SetTintTextureToMicroSplatTerrain()
         {
             var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<MicroSplatTerrain>()).ToArray();
             if (terrains.Length == 0)
@@ -365,8 +383,12 @@ namespace Cuku.MicroWorld
 
         #region Elements
 
+        /// <summary>
+        /// Select 1 <see cref="Extractor"/> asset and 1 <see cref="MicroWorldArea"/> asset from the Project,
+        /// and it will set them up in the scene.
+        /// </summary>
         [MenuItem(nameof(MicroWorld) + "/Setup Elements", priority = 300)]
-        static void SetupElements()
+        internal static void SetupElements()
         {
             var dataAssets = Array.FindAll(Selection.objects, obj => obj is Extractor)
                 .Select(obj => obj as Extractor).ToArray();
@@ -399,7 +421,7 @@ namespace Cuku.MicroWorld
             try
             {
                 prefab = Array.FindAll(Selection.objects, obj => obj is GameObject)
-                                           .Select(obj => obj as GameObject).ToArray()[0];
+                    .Select(obj => obj as GameObject).ToArray()[0];
             }
             catch (Exception e)
             {
@@ -423,6 +445,71 @@ namespace Cuku.MicroWorld
                 spline.Closed = splineContainer.Spline.Closed;
                 splineContainer.Spline = spline;
                 Utilities.SnapSplineToTerrain(ref splineContainer);
+            }
+        }
+
+        [MenuItem(nameof(MicroWorld) + "/Center Spline Pivot", priority = 302)]
+        internal static void CenterSplinePivot()
+        {
+            foreach (var splineContainer in Selection.gameObjects.Where(go => go.GetComponent<SplineContainer>())
+                .Select(go => go.GetComponent<SplineContainer>()).ToArray())
+            {
+                var shift = (float3)splineContainer.transform.position;
+                splineContainer.transform.position = Vector3.zero;
+                var knots = splineContainer.Spline.Knots.ToArray();
+                for (int i = 0; i < knots.Length; i++)
+                {
+                    var knot = knots[i];
+                    knot.Position += shift;
+                    splineContainer.Spline.SetKnot(i, knot);
+                }
+            }
+        }
+
+        [MenuItem(nameof(MicroWorld) + "/Filter Elements by Spline", priority = 301)]
+        internal static void FilterElements()
+        {
+            SplineContainer targetSpline = default;
+            try
+            {
+                targetSpline = Selection.gameObjects.FirstOrDefault(go => !go.GetComponent<MicroWorldArea>())
+                    .GetComponent<SplineContainer>();
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"Select 1 {nameof(SplineContainer)} to use as filter: {e}");
+                return;
+            }
+            // Area splines
+            var areas = Selection.gameObjects.Where(go => go.GetComponent<MicroWorldArea>())
+                .Select(go => go.GetComponent<SplineContainer>()).ToArray();
+            if (areas.Length < 1)
+            {
+                Debug.LogError($"Select at least 1 {nameof(MicroWorldArea)} to filter!");
+                return;
+            }
+            for (var i = 0; i < areas.Length; i++)
+            {
+                var area = areas[i];
+                var include = false;
+                var points = area.Spline.Knots;
+                foreach (var point in points)
+                {
+                    float t;
+                    SplineUtility.GetNearestPoint(targetSpline.Spline, point.Position, out _, out t);
+                    var pos = SplineUtility.EvaluatePosition(targetSpline.Spline, t);
+                    if (math.distance(SplineUtility.EvaluatePosition(targetSpline.Spline, t), point.Position) <= 3000)
+                    {
+                        include = true;
+                        continue;
+                    }
+                }
+                if (!include)
+                {
+                    Undo.RecordObject(area.gameObject, nameof(FilterElements));
+                    area.gameObject.SetActive(false);
+                    EditorUtility.SetDirty(area.gameObject);
+                }
             }
         }
 
@@ -467,17 +554,6 @@ namespace Cuku.MicroWorld
                 tfp.Terrain.detailObjectDensity = settings.detailOptions.density;
             }
         }
-
-        //[MenuItem(nameof(MicroWorld) + "/Clear Vegetation", priority = 401)]
-        //static void ClearVegetation()
-        //{
-        //    foreach (var tfp in GameObject.FindObjectsOfType<TerrainFoliageProvider>(true))
-        //        tfp.forceRefreshOnEnable = false;
-        //    foreach (var biome in GameObject.FindObjectsOfType<SplineArea>(true))
-        //        GameObject.Destroy(biome);
-        //    foreach (var vegetation in GameObject.FindObjectsOfType<TreeStamp>(true))
-        //        GameObject.Destroy(vegetation);
-        //}
 
         #endregion
     }

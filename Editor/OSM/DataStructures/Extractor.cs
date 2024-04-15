@@ -15,7 +15,7 @@ namespace Cuku.MicroWorld
         void Extract()
         {
             var startTime = System.DateTime.Now;
-            var elements = Elements.ExtractElements(Source);
+            var elements = Elements.Extract(Source);
             File.WriteAllText(DataPath(), JsonConvert.SerializeObject(elements));
             var timePassed = System.DateTime.Now - startTime;
             Debug.Log($"Extracted {elements.Length} elements ({$"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}"})");
