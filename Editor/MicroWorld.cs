@@ -144,7 +144,11 @@ namespace Cuku.MicroWorld
             else
             {
                 DuplicateDirectory(terrainDirectory, newTerrainDirectory);
+#if TERRALAND
                 ExtractTerrainTilesInfo();
+#else
+                UnityEngine.Debug.LogError("TerraLand was not found!");
+#endif
             }
 
             string[] assetPaths = AssetDatabase.FindAssets("", new string[] { newTerrainDirectory });
