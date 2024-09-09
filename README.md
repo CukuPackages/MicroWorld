@@ -36,6 +36,7 @@ Create surrounding terrain with enough low resolution height and texture maps:
 - Splatmap Res: 4096
 
 ## Setup Main Area
+- Move the generate Data folder from TPrefabs - InSceneData to the project Assets
 - Select terrains parent in Hierarchy
 - MicroWorld - Convert Terain to MicroVerse
 
