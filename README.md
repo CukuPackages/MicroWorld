@@ -22,6 +22,7 @@ Create main area terrain with high resolution height and texture maps:
 - Tile Grid: 5
 - Heightmap Res: 2048
 - Texture Res: 8192
+- Draw Instanced: False
 - Pixel Error: 1
 - Splatmap Res: 4096
 
@@ -29,7 +30,10 @@ Create surrounding terrain with enough low resolution height and texture maps:
 - Area Size: 100 km
 - Tile Grid: 2
 - Heightmap Res: 128
-- Texture Res: 4096
+- Texture Res: 8192
+- Draw Instanced: False
+- Pixel Error: 1
+- Splatmap Res: 4096
 
 ## Setup Main Area
 - Select terrains parent in Hierarchy
