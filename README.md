@@ -33,7 +33,7 @@ Create surrounding terrain with enough low resolution height and texture maps:
 
 ## Setup Main Area
 - Select terrains parent in Hierarchy
-- Utilities - Convert Terain to MicroVerse
+- MicroWorld - Convert Terain to MicroVerse
 
 ### Setup MicroVerse
 1. Select MicroVerse in Hierarchy
@@ -68,7 +68,7 @@ To avoid this, comment out the only call to RevisionAllStamps in MicroVerse.cs.
 
 ### Apply Tint Maps
 1. Select Terrains Parent under MicroVerse
-2. Utilities - Set Tint Texture To MicroSplat Terrain
+2. MicroWorld - Set Tint Texture To MicroSplat Terrain
 
 ### Setup Procedural Texturing
 Use Procedural Texturing to immediately texture the terrain based on height, slope, and noise functions:
