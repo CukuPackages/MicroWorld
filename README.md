@@ -101,9 +101,9 @@ Set World Height Range:
 ## Setup Surrounding Area
 Convert Surrounding Area terrain into mesh terrain:
 1. Create new scene
-2. Construct Terrain as above (not the MicroVerse part)
+2. Setup Terrain as above
 3. Sculpt down to 0 the terrain where the main terrain is located: use the cube trick without material, so the cube will be visible on top of the terrain
-4. Apply similar global and procedural texturing as the main area
+4. Apply similar global texturing settings as the main area
 5. Convert terrains to mesh with default settings
 6. Lower splat maps resolution to the minimum
 7. Delete terrain dataterrain data
