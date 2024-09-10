@@ -39,15 +39,16 @@ Create surrounding terrain with enough low resolution height and texture maps:
 - Move the generate Data folder from TPrefabs - InSceneData to the project Assets
 - Select terrains parent in Hierarchy
 - MicroWorld - Convert Terain to MicroVerse
+- HeightStamp textures should be Red (if they're green, restart Unity to refresh the HeightStamps import)
+- Adjust HeightStamps Scale.y so that it roughly matches the original terrain
 
 ### Setup MicroVerse
 1. Select MicroVerse in Hierarchy
 2. Adjust HeightMap Resolution if required (also adjust HeightStamp textures resolution)
 3. Adjust AlphaMap Resolution if required
 4. Detail Resolution: 512
-5. Select all Height Splats and adjust Scale.y so that it roughly matches the original terrain
-6. After MicroVerse is setup, remove TerrainData and Layer folders of the original terrain
-7. Enable Terrain Culling: MicroVerse - Options - Settings - Use Scene Culling
+5. After MicroVerse is setup, remove TerrainData and Layer folders of the original terrain
+6. Enable Terrain Culling: MicroVerse - Options - Settings - Use Scene Culling
 
 #### Fix Stamps Prefab Overrides
 When instantiating content prefabs from script, e.g. from MVBiome, MicroVerse calls RevisionAllStamps in MicroVerse.cs.
