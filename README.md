@@ -145,9 +145,9 @@ OSM data can also be used to extract the vegetation areas, roads, buildings, etc
 4. Add the data to StreamingAssets
 5. Create Source asset: Right Click in Assets - Create - OSM - Source
 6. Select Source and set the following:
-   - 1. Data: full name of osm data, e.g. brandenburg-latest.osm.pbf
-   - 2. Center Coordinates: can be found from TerraLand settings when generating the terrain
-   - 3 Size: how much data to extract from the center
+   - Data: full name of osm data, e.g. brandenburg-latest.osm.pbf
+   - Center Coordinates: can be found from TerraLand settings when generating the terrain
+   - Size: how much data to extract from the center
 7. Use https://www.openstreetmap.org/ to analyze elements to be extracted
 8. If Query features doesn't work, try and click on the feature boundary
 
