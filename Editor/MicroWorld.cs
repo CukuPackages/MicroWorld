@@ -121,6 +121,7 @@ namespace Cuku.MicroWorld
         [MenuItem(nameof(MicroWorld) + "/Convert Terrain To MicroVerse", priority = 100)]
         internal static void ConvertTerrainToMicroVerse()
         {
+            Debug.Log("Converting Terrain to MicroVerse...");
             var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<Terrain>()).ToArray();
             if (terrains.Length == 0)
             {
@@ -140,7 +141,7 @@ namespace Cuku.MicroWorld
             string terrainDirectory = Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrains.First().terrainData));
             string newTerrainDirectory = terrains.First().terrainData.MicroVerseTerrainDataPath();
             if (Directory.Exists(newTerrainDirectory))
-                Debug.Log("Terrain data is already extracted!");
+                Debug.Log("Terrain data is already extracted");
             else
             {
                 DuplicateDirectory(terrainDirectory, newTerrainDirectory);
@@ -195,6 +196,7 @@ namespace Cuku.MicroWorld
         [MenuItem(nameof(MicroWorld) + "/Extract Terrain Tiles Info", priority = 101)]
         internal static void ExtractTerrainTilesInfo()
         {
+            Debug.Log("Extractng Terrain Tiles Info...");
             var tiles = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<TTileInfo>()).ToArray();
             var data = new Tile[tiles.Length];
             for (int i = 0; i < data.Length; i++)
@@ -218,6 +220,7 @@ namespace Cuku.MicroWorld
         /// </summary>
         internal static void ConvertTerrainDataToHeightmap()
         {
+            Debug.Log("Converting Terrain Data to Heightmap...");
             var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<Terrain>()).ToArray();
             var terrainsData = terrains.Select(t => t.terrainData).ToArray();
             if (terrainsData.Length == 0 || terrainsData.Length == 0)
@@ -228,9 +231,9 @@ namespace Cuku.MicroWorld
 
             var terrainDirectory = Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrainsData[0]));
             var heightmapDirectory = Path.Combine(Path.GetDirectoryName(terrainDirectory), nameof(HeightStamp));
-            if (Directory.Exists(terrainDirectory))
+            if (Directory.Exists(heightmapDirectory))
             {
-                Debug.Log("Heightmaps are already extracted!");
+                Debug.Log($"Heightmaps are already extracted at {heightmapDirectory}");
                 return;
             }
 
@@ -319,6 +322,7 @@ namespace Cuku.MicroWorld
             // Encode the texture to a TIFF file
             byte[] tiffBytes = texture.EncodeToTGA();
             File.WriteAllBytes(filePath, tiffBytes);
+            Debug.Log($"Saved Heightmap: {filePath}");
             UnityEngine.Object.DestroyImmediate(texture);
         }
 
