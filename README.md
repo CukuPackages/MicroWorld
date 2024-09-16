@@ -20,7 +20,7 @@ Use TerraLand to download terrain data and satellite images:
 Create main area terrain with high resolution height and texture maps:
 - Area Size: 20 km
 - Tile Grid: 5
-- Heightmap Res: 4096
+- Heightmap Res: 2048
 - Texture Res: 8192
 - Resample Mode: Down
 - World Scale: 0.1 or less (for large areas)
@@ -29,7 +29,7 @@ Create main area terrain with high resolution height and texture maps:
 - Splatmap Res: 4096
 
 Create surrounding terrain with enough low resolution height and texture maps:
-- Area Size: 100 km
+- Area Size: 200 km
 - Tile Grid: 2
 - Heightmap Res: 128
 - Texture Res: 8192
@@ -40,7 +40,7 @@ Create surrounding terrain with enough low resolution height and texture maps:
 - Splatmap Res: 4096
 
 ## Setup Main Area
-- Move the generate Data folder from TPrefabs - InSceneData to the project Assets
+- Move the generated Data folder from TPrefabs - InSceneData to the project Assets
 - Select terrains parent in Hierarchy
 - MicroWorld - Convert Terain to MicroVerse
 - HeightStamp textures should be Red (if they're green, restart Unity to refresh the HeightStamps import)
