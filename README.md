@@ -14,6 +14,8 @@ Foliage Renderer
 
 [OsmSharp](https://www.nuget.org/packages/OsmSharp/)
 
+[OsmSharp.Geo](https://www.nuget.org/packages/OsmSharp.Geo/)
+
 ## Terrain Data
 Use TerraLand to download terrain data and satellite images:
 
