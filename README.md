@@ -148,14 +148,13 @@ OSM data can also be used to extract the vegetation areas, roads, buildings, etc
 ### Setup OSM
 1. Use NuGet to install OsmSharp and OsmSharp.Geo
 2. Install MicroWorld
-3. Download .osm.pbf data from Geofabrik
-4. Add the data to StreamingAssets
-5. Create Source asset: Right Click in Assets - Create - MicroWorld - OSMSource
-6. OSMSource - Select OSM Data to chose the OSM data .pbf file (doesn't have to be in the project)
-7. OSMSource - Center Coordinates: can be found from TerraLand settings when generating the terrain
-8. Area: data extraction are to extract from the center
-9. Use https://www.openstreetmap.org/ to analyze elements to be extracted
-10. If Query features don't work, try and click on the feature boundary
+3. Download .osm.pbf data from Geofabrik and add in [LOCAL] or anywhere on the PC, it will not be added in runtime
+4. Create Source asset: Right Click in Assets - Create - MicroWorld - OSMSource
+5. OSMSource - Select OSM Data to chose the OSM data .pbf file
+6. OSMSource - Center Coordinates: can be found from TerraLand settings when generating the terrain
+7. Area: data extraction are to extract from the center
+8. Use https://www.openstreetmap.org/ to analyze elements to be extracted
+9. If Query features don't work, try and click on the feature boundary
 
 #### Setup Vegetation
 1. Create Vegetation scene to use it to store vegetation biome areas and make it Active
