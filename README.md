@@ -159,10 +159,10 @@ OSM data can also be used to extract the vegetation areas, roads, buildings, etc
 #### Setup Vegetation
 1. Create Vegetation scene to use it to store vegetation biome areas and make it Active
 2. Create vegetation Element assets as defined in OSM (e.g. landuse:forest): Right Click in Assets - Create - OSM - Element
-3. Create OSM data Extractor asset: Right Click in Assets - Create - OSM - Extractor
+3. Create OSM data Extractor asset: Right Click in Assets - Create - MicroWorld - OSMExtractor
 4. Set Source asset (created when setting up OSM)
 5. Set vegetation Element assets
-6. Right Click Extractor asset in Inspector - Extract
+6. Select OSMExtractor asset in Inspector - Click ⋮ - Extract
 7. Create MicroWorldBiome prefab variant
 8. Select bot Extractor and Biome
 9. MicroWorld - Setup Elements
