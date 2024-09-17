@@ -153,7 +153,7 @@ OSM data can also be used to extract the vegetation areas, roads, buildings, etc
 5. Create Source asset: Right Click in Assets - Create - MicroWorld - OSMSource
 6. OSMSource - Select OSM Data to chose the OSM data .pbf file (doesn't have to be in the project)
 7. OSMSource - Center Coordinates: can be found from TerraLand settings when generating the terrain
-8. Size: how much data to extract from the center
+8. Area: data extraction are to extract from the center
 9. Use https://www.openstreetmap.org/ to analyze elements to be extracted
 10. If Query features don't work, try and click on the feature boundary
 
