@@ -181,3 +181,27 @@ If there's just too much content to spawn and not enough RAM, you're doomed, but
 2. Spawn and save the content in batches
 3. Don't focus to Scene and Game tabs
 4. When building, don't keep MicroVerse scene open
+
+## TVE and Amplify Impostors Workflow
+### Source Prefab
+1. Keep only LOD0 and LOD1
+2. Remove renderers from LOD1
+3. Set LOD0 Transition (% Screen Size): 10%
+4. Set LOD1 Transition (% Screen Size): 0.1%
+
+### Convert Source Prefab to TVE
+1. If a pop-up shows select: Keep Converted Material (to reuse existing materials)
+2. Convert Collected Data (green box icon after Convert) and move to Library (Library - Asset Type - Publisher)
+3. Create a folder with prefab name on the same level to store settings and specific textures to that prefab
+
+### Impostorize
+1. Add Amplify Impostor component to Prefab
+2. Click the + button before Bake Impostor button to create new Impostor settings and add to the prefab folder
+3. Bake Type: Hemi Octahedron (for top down views)
+4. LOD Insert Mode: Replace Specific
+5. LOD Target Index: 1
+6. Bake Preset: TVE Hemi Octahedron
+7. Add Prefab to scene
+8. Click Bake Impostor
+9. Drag LOD0 object on newly created Impostor object - Material - Copy Settings From Object
+10. Apply prefab overrides
