@@ -162,9 +162,9 @@ OSM data can also be used to extract the vegetation areas, roads, buildings, etc
 3. Create OSM data Extractor asset: Right Click in Assets - Create - MicroWorld - OSMExtractor
 4. Set Source asset (created when setting up OSM)
 5. Set vegetation Element assets
-6. Select OSMExtractor asset in Inspector - Click ⋮ - Extract
-7. Create MicroWorldBiome prefab variant
-8. Select bot Extractor and Biome
+6. Select OSMExtractor asset in Inspector - Click ⋮ - Extract (it will create a .json file on the same location)
+7. Create MicroWorldBiome prefab variant (from MicroWorld - Runtime - MicroWorldArea - Prefabs)
+8. Select both Extractor and Biome
 9. MicroWorld - Setup Elements
 10. Select create Biome Game Object/s in the scene - Right Click Micro World Biome component - Spawn
 
