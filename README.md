@@ -112,13 +112,16 @@ Convert Surrounding Area terrain into mesh terrain:
 
 ## Vegetation
 ### Setup Foliage Renderer
-1. Windows - FoliageRenderer - Validate Culling Shader
+1. Window - FoliageRenderer - Validate Culling Shader
 2. GameObject - Create Foliage Renderer
 3. Select Foliage Renderer game object - Shader Patcher - Scan - Patch
 4. Select FoliageRenderer prefab - MicroWorld - Apply Foliage Renderer Settings
 5. In case vegetation doesn't show in all terrains, recreated Foliage Renderer and apply settings
 6. Enable MicroVerse - Draw Trees and Foliage
 7. Set Tree and Detail settings to the maximum
+
+> [!NOTE]
+> If you are using TVE - The Visual Engine, set the TVE ShaderManager to FoliageRenderer Mode.
 
 ### Optimization
 1. Foliage Renderer - Uncheck Auto Refresh Terrains
