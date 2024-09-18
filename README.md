@@ -165,9 +165,10 @@ OSM data can also be used to extract the vegetation areas, roads, buildings, etc
 6. Select OSMExtractor asset in Inspector - Click ⋮ - Extract (it will create a .json file on the same location)
 7. Create MicroWorldVegetation / MicroWorldBiome prefab variant (from MicroWorld - Runtime - MicroWorldArea - Prefabs)
 8. MicroWorldVegetation / MicroWorldBiome - Content: use one from Cuku.MicroWorld.Content or create a new one
-9. Select both Extractor and Biome / Vegetation
-10. MicroWorld - Setup Elements
-11. Select Biome Game Object/s in the scene - Click ⋮ - Spawn
+9. Use models from Library for TreeStamps, Biomes, etc.
+10. Select both Extractor and Biome / Vegetation
+11. MicroWorld - Setup Elements
+12. Select Biome Game Object/s in the scene - Click ⋮ - Spawn
 
 #### Reduce Vegetaion
 Vegetation Areas can be reduced / filtered around a spline by a defined range.
