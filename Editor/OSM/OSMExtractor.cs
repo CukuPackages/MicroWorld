@@ -5,11 +5,11 @@ using UnityEditor;
 
 namespace Cuku.MicroWorld
 {
-    [CreateAssetMenu(menuName = nameof(OSM) + "/" + nameof(Extractor))]
-    public class Extractor : ScriptableObject
+    [CreateAssetMenu(menuName = nameof(MicroWorld) + "/" + nameof(OSMExtractor))]
+    public class OSMExtractor : ScriptableObject
     {
-        public Source Source = default;
-        public Element[] Elements = default;
+        public OSMSource Source = default;
+        public OSMElement[] Elements = default;
 
         [ContextMenu(nameof(Extract))]
         void Extract()

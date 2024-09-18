@@ -13,9 +13,9 @@ namespace Cuku.MicroWorld
 {
     public static class OSM
     {
-        public static Coordinate[][] Extract(this Element[] elements, Source source)
+        public static Coordinate[][] Extract(this OSMElement[] elements, OSMSource source)
         {
-            using (var fileStream = source.LoadData())
+            using (var fileStream = File.OpenRead(source.Data))
             {
                 var box = source.ToBoundingBox();
                 var stream = new PBFOsmStreamSource(fileStream).FilterBox(box.x, box.y, box.z, box.w);
@@ -49,9 +49,6 @@ namespace Cuku.MicroWorld
             }
         }
 
-        internal static FileStream LoadData(this Source source)
-            => File.OpenRead(Path.Combine(Application.streamingAssetsPath, source.Data));
-
         internal static Coordinate[][] GetCoordinates(this List<Node[]> elements)
         {
             var coordinates = new Coordinate[elements.Count][];
@@ -68,11 +65,11 @@ namespace Cuku.MicroWorld
             return coordinates;
         }
 
-        internal static float4 ToBoundingBox(this Source source)
+        internal static float4 ToBoundingBox(this OSMSource source)
         {
             var centerLat = source.CenterCoordinates.Lat;
             var centerLon = source.CenterCoordinates.Lon;
-            var size = source.Size / 2.0f;
+            var size = source.Area / 2.0f;
             // Convert size from kilometers to degrees (approximation)
             float deltaLatDegrees = size.y / 111.32f; // 1 degree of latitude is approximately 111.32 km
             float deltaLonDegrees = size.x / (111.32f * (float)Math.Cos(centerLat * Math.PI / 180.0f)); // Adjust for latitude

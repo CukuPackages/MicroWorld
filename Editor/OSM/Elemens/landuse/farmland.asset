@@ -9,7 +9,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 43a8fc581b0447b42b0b964320c215b4, type: 3}
+  m_Script: {fileID: 11500000, guid: cf9e1e4676bb99140b70da8cd8969c22, type: 3}
   m_Name: farmland
   m_EditorClassIdentifier: 
   Key: landuse

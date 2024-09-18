@@ -392,17 +392,17 @@ namespace Cuku.MicroWorld
         #region Elements
 
         /// <summary>
-        /// Select 1 <see cref="Extractor"/> asset and 1 <see cref="MicroWorldArea"/> asset from the Project,
+        /// Select 1 <see cref="OSMExtractor"/> asset and 1 <see cref="MicroWorldArea"/> asset from the Project,
         /// and it will set them up in the scene.
         /// </summary>
         [MenuItem(nameof(MicroWorld) + "/Setup Elements", priority = 300)]
         internal static void SetupElements()
         {
-            var dataAssets = Array.FindAll(Selection.objects, obj => obj is Extractor)
-                .Select(obj => obj as Extractor).ToArray();
+            var dataAssets = Array.FindAll(Selection.objects, obj => obj is OSMExtractor)
+                .Select(obj => obj as OSMExtractor).ToArray();
             if (dataAssets.Length != 1)
             {
-                Debug.LogError($"Select exactly 1 {nameof(Extractor)} file!");
+                Debug.LogError($"Select exactly 1 {nameof(OSMExtractor)} file!");
                 return;
             }
             var dataAsset = dataAssets[0];

@@ -3,11 +3,10 @@ using UnityEngine;
 
 namespace Cuku.MicroWorld
 {
-    [CreateAssetMenu(menuName = nameof(OSM) + "/" + nameof(Source))]
-    public class Source : ScriptableObject
+    [CreateAssetMenu(menuName = nameof(MicroWorld) + "/" + nameof(OSMSource))]
+    public class OSMSource : ScriptableObject
     {
         [SerializeField]
-        [Tooltip("\".pbf\" file path relative to StreamingAssets.")]
         public string Data = string.Empty;
 
         [SerializeField]
@@ -15,7 +14,7 @@ namespace Cuku.MicroWorld
         public Coordinate CenterCoordinates;
 
         [SerializeField]
-        [Tooltip("Bounding box around the " + nameof(CenterCoordinates) + " size in Km.")]
-        public float2 Size = new float2(1.0f, 1.0f);
+        [Tooltip("Bounding box around the " + nameof(CenterCoordinates) + " in Unity Units.")]
+        public float2 Area = new float2(1.0f, 1.0f);
     }
 }

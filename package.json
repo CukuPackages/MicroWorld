@@ -1,14 +1,12 @@
 {
   "name": "com.cuku.microworld",
   "displayName": "Cuku.MicroWorld",
-  "version": "24.4.5",
+  "version": "24.9.18",
   "author": {
-    "name": "Besjan Xhika",
-    "email": "xhikab@gmail.com",
-    "url": "https://www.linkedin.com/in/bxhika/"
+    "name": "Cuku"
   },
   "unity": "2021.3",
-  "description": "Workflows for MicroVerse.",
+  "description": "Workflows for MicroVerse and MicroSplat.",
   "keywords": [
     "MicroVerse",
     "MicroSplat"
