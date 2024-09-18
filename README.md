@@ -152,9 +152,9 @@ OSM data can also be used to extract the vegetation areas, roads, buildings, etc
 4. Create Source asset: Right Click in Assets - Create - MicroWorld - OSMSource
 5. OSMSource - Select OSM Data to chose the OSM data .pbf file
 6. OSMSource - Center Coordinates: can be found from TerraLand settings when generating the terrain
-7. Area: data extraction are to extract from the center
+7. Area: the area where to extract data from (real world size, ignore TerraLand World Scale)
 8. Use https://www.openstreetmap.org/ to analyze elements to be extracted
-9. If Query features don't work, try and click on the feature boundary
+9. If Query features doesn't work, try and click on the feature boundary
 
 #### Setup Vegetation
 1. Create Vegetation scene to use it to store vegetation biome areas and make it Active
@@ -163,10 +163,11 @@ OSM data can also be used to extract the vegetation areas, roads, buildings, etc
 4. Set Source asset (created when setting up OSM)
 5. Set vegetation Element assets
 6. Select OSMExtractor asset in Inspector - Click ⋮ - Extract (it will create a .json file on the same location)
-7. Create MicroWorldBiome prefab variant (from MicroWorld - Runtime - MicroWorldArea - Prefabs)
-8. Select both Extractor and Biome
-9. MicroWorld - Setup Elements
-10. Select create Biome Game Object/s in the scene - Right Click Micro World Biome component - Spawn
+7. Create MicroWorldVegetation / MicroWorldBiome prefab variant (from MicroWorld - Runtime - MicroWorldArea - Prefabs)
+8. MicroWorldVegetation / MicroWorldBiome - Content: use one from Cuku.MicroWorld.Content or create a new one
+9. Select both Extractor and Biome / Vegetation
+10. MicroWorld - Setup Elements
+11. Select Biome Game Object/s in the scene - Click ⋮ - Spawn
 
 #### Reduce Vegetaion
 Vegetation Areas can be reduced / filtered around a spline by a defined range.
