@@ -54,7 +54,8 @@ Create surrounding terrain with enough low resolution height and texture maps:
 3. Adjust AlphaMap Resolution if required
 4. Detail Resolution: 512
 5. Enable Terrain Culling: MicroVerse - Options - Settings - Use Scene Culling
-6. After MicroVerse is setup, remove TerrainData and Layer folders of the original terrain
+6. MicroVerse - Pixel Error: 1
+7. After MicroVerse is setup, remove TerrainData and Layer folders of the original terrain
 
 #### Fix Stamps Prefab Overrides
 When instantiating content prefabs from script, e.g. from MVBiome, MicroVerse calls RevisionAllStamps in MicroVerse.cs.
