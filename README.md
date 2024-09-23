@@ -22,7 +22,7 @@ Use TerraLand to download terrain data and satellite images:
 Create main area terrain with high resolution height and texture maps:
 - Area Size: 20 km
 - Tile Grid: 5
-- Heightmap Res: 2048
+- Heightmap Res: 1024 (adapt so that is not jagged)
 - Texture Res: 8192
 - Resample Mode: Down
 - World Scale: 0.1 or less (for large areas)
