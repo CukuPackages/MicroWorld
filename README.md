@@ -187,10 +187,12 @@ If there's just too much content to spawn and not enough RAM, you're doomed, but
 
 ## TVE and Amplify Impostors Workflow
 ### Source Prefab
-1. Keep only LOD0 and LOD1 and only LOD0 Game Objects
-2. Remove renderers from LOD1
-3. Set LOD0 Transition (% Screen Size): 10%
-4. Set LOD1 Transition (% Screen Size): 0.1%
+1. Keep only LOD0 and LOD1
+2. Keep only LOD0 Game Objects
+3. Remove Ccolliders from Game Objects
+4. Remove renderers from LOD1
+5. Set LOD0 Transition (% Screen Size): 10%
+6. Set LOD1 Transition (% Screen Size): 0.1%
 
 ### Convert Source Prefab to TVE
 1. If a pop-up shows select: Keep Converted Material (to reuse existing materials)
