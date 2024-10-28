@@ -203,10 +203,9 @@ If there's just too much content to spawn and not enough RAM, you're doomed, but
 1. Add Amplify Impostor component to Prefab
 2. Click the + button before Bake Impostor button to create new Impostor settings and add to the prefab folder
 3. Bake Type: Hemi Octahedron (for top down views)
-4. LOD Insert Mode: Replace Specific
-5. LOD Target Index: 1
-6. Bake Preset: TVE Hemi Octahedron
-7. Add Prefab to scene
-8. Click Bake Impostor
-9. Drag LOD0 object on newly created Impostor object - Material - Copy Settings From Object
-10. Apply prefab overrides
+4. LOD Insert Mode: Replace Last
+5. Bake Preset: TVE Hemi Octahedron
+6. Add Prefab to scene
+7. Click Bake Impostor
+8. Drag LOD0 object on newly created Impostor object - Material - Copy Settings From Object
+9. Apply prefab overrides
