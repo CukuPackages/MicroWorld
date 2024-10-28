@@ -189,10 +189,10 @@ If there's just too much content to spawn and not enough RAM, you're doomed, but
 ### Source Prefab
 1. Keep only LOD0 and LOD1
 2. Keep only LOD0 Game Objects
-3. Remove Ccolliders from Game Objects
-4. Remove renderers from LOD1
-5. Set LOD0 Transition (% Screen Size): 10%
-6. Set LOD1 Transition (% Screen Size): 0.1%
+3. Remove renderers from LOD1
+4. Set LOD0 Transition (% Screen Size): 10%
+5. Set LOD1 Transition (% Screen Size): 0.1%
+6. Remove Ccolliders from Game Objects
 
 ### Convert Source Prefab to TVE
 1. If a pop-up shows select: Keep Converted Material (to reuse existing materials)
