@@ -6,8 +6,11 @@ using UnityEngine.Splines;
 namespace Cuku.MicroWorld
 {
     [RequireComponent(typeof(SplineContainer))]
-    public class MicroWorldVegetation : MicroWorldArea
+    public class MicroWorldTreeStamp : MicroWorldArea
     {
+        [SerializeField] float Density = 2;
+
+
         [ContextMenu(nameof(Spawn))]
         public override void Spawn()
         {
@@ -15,7 +18,9 @@ namespace Cuku.MicroWorld
 
             base.Spawn();
 
-            SetFilter(ContentInstance.GetComponent<TreeStamp>().filterSet.falloffFilter);
+            var treeStamp = ContentInstance.GetComponent<TreeStamp>();
+            treeStamp.density = Density;
+            SetFilter(treeStamp.filterSet.falloffFilter);
         }
     }
 }
