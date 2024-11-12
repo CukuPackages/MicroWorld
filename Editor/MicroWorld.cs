@@ -405,6 +405,7 @@ namespace Cuku.MicroWorld
                 Debug.LogError($"Select exactly 1 {nameof(OSMExtractor)} file!");
                 return;
             }
+
             var dataAsset = dataAssets[0];
             var data = string.Empty;
             try
@@ -415,6 +416,7 @@ namespace Cuku.MicroWorld
             {
                 Debug.LogError("Can't extract data: " + e.Message);
             }
+
             Coordinate[][] elements = default;
             try
             {
@@ -444,16 +446,18 @@ namespace Cuku.MicroWorld
             var elementsParent = new GameObject(Path.GetFileNameWithoutExtension(AssetDatabase.GetAssetPath(dataAsset))).transform;
             var tiles = JsonConvert.DeserializeObject<Tile[]>(File.ReadAllText(
                 Path.Combine(GameObject.FindFirstObjectByType<Terrain>(FindObjectsInactive.Include).terrainData.MicroVerseTerrainDataPath(), nameof(Tile) + ".json")));
-            foreach (var element in elements.ToWorldPoints(tiles))
+            foreach (var element in elements.ToWorldPoints(ref tiles))
             {
                 var splineContainer = (PrefabUtility.InstantiatePrefab(prefab, parent: elementsParent) as GameObject)
                     .GetComponent<SplineContainer>();
-                var spline = new Spline(element.ToKnots());
+                var closed = splineContainer.Spline.Closed;
+                var spline = new Spline(element.ToKnots(closed));
                 spline.SetTangentMode(TangentMode.Linear);
-                spline.Closed = splineContainer.Spline.Closed;
+                spline.Closed = closed;
                 splineContainer.Spline = spline;
-                Utilities.SnapSplineToTerrain(ref splineContainer);
+                SplineUtilities.SnapSplineToTerrain(ref splineContainer);
             }
+            Debug.Log($"{nameof(SetupElements)}: {elements.Length}");
         }
 
         [MenuItem(nameof(MicroWorld) + "/Center Spline Pivot", priority = 302)]

@@ -1,104 +1,51 @@
 using UnityEngine;
-using Unity.Mathematics;
-using System.Linq;
-using System.Collections.Generic;
-using UnityEngine.Splines;
+using System.Reflection;
 
 namespace Cuku.MicroWorld
 {
     public static class Utilities
     {
-        #region Spline
-
-        public static BezierKnot[] ToKnots(this float3[] points)
+        public static T CopyTo<T>(this T original, GameObject destination) where T : Component
         {
-            var bezierKnots = new BezierKnot[points.Length];
-            for (int i = 0; i < points.Length; i++)
-                bezierKnots[i] = new BezierKnot(points[i]);
-            return bezierKnots;
-        }
-
-        public static void ShiftKnots(ref SplineContainer splineContainer, Vector3 shift)
-        {
-            var shiftAmmount = (float3)shift;
-            foreach (var spline in splineContainer.Splines)
+            T copy = destination.AddComponent<T>();
+            foreach (FieldInfo field in typeof(T).GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
             {
-                var knots = spline.Knots.ToArray();
-                for (int i = 0; i < knots.Length; i++)
-                    knots[i].Position += shiftAmmount;
-                for (int i = 0; i < knots.Length; i++)
-                    spline.SetKnot(i, knots[i]);
+                field.SetValue(copy, field.GetValue(original));
             }
-        }
-
-        public static void SnapSplineToTerrain(ref SplineContainer splineContainer)
-        {
-            var terrains = Terrain.activeTerrains;
-            foreach (var spline in splineContainer.Splines)
+            foreach (PropertyInfo property in typeof(T).GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
             {
-                var knots = spline.Knots.ToArray();
-                for (int i = 0; i < knots.Length; i++)
+                if (property.CanWrite)
                 {
-                    var pointPosition = knots[i].Position;
-                    pointPosition.y = 10000.0f;
-                    RaycastHit hit;
-                    for (int j = 0; j < terrains.Length; j++)
+                    try
                     {
-                        var ray = new Ray(pointPosition, Vector3.down);
-                        if (terrains[j].GetComponent<Collider>().Raycast(ray, out hit, Mathf.Infinity))
+                        // Handle specific case for Renderer properties
+                        if (typeof(T) == typeof(MeshRenderer) && (property.Name == "material" || property.Name == "materials"))
                         {
-                            pointPosition.y = hit.point.y;
-                            break;
+                            // In edit mode, use sharedMaterial and sharedMaterials to avoid material duplication
+                            if (!Application.isPlaying)
+                            {
+                                if (property.Name == "material")
+                                    property.SetValue(copy, ((MeshRenderer)(object)original).sharedMaterial);
+                                else if (property.Name == "materials")
+                                    property.SetValue(copy, ((MeshRenderer)(object)original).sharedMaterials);
+                            }
+                            else
+                            {
+                                property.SetValue(copy, property.GetValue(original));
+                            }
+                        }
+                        else
+                        {
+                            property.SetValue(copy, property.GetValue(original));
                         }
                     }
-                    knots[i].Position = pointPosition;
+                    catch
+                    {
+                        // Catch and ignore exceptions for read-only properties or other issues
+                    }
                 }
-                for (int i = 0; i < knots.Length; i++)
-                    spline.SetKnot(i, knots[i]);
             }
+            return copy;
         }
-
-        public static void AdaptVolumeToSpline(this Transform target, SplineContainer splineContainer)
-        {
-            // Calculate the dimensions of the bounding box
-            var min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
-            var max = new float3(float.MinValue, float.MinValue, float.MinValue);
-            var points = splineContainer.Points();
-            for (int i = 0; i < points.Count; i++)
-            {
-                var point = points[i];
-                min = math.min(min, point);
-                max = math.max(max, point);
-            }
-            var dimensions = max - min;
-            target.position = (Vector3)splineContainer.Center();
-            target.localScale = new Vector3(dimensions.x, target.localScale.y, dimensions.z);
-        }
-
-        /// <summary>
-        /// Get all <see cref="SplineContainer"/> points.
-        /// </summary>
-        public static List<float3> Points(this SplineContainer splineContainer)
-        {
-            var points = new List<float3>();
-            foreach (var spline in splineContainer.Splines)
-                foreach (var knot in spline.Knots)
-                    points.Add(knot.Position);
-            return points;
-        }
-
-        /// <summary>
-        /// Get <see cref="SplineContainer"/> center of all points.
-        /// </summary>
-        public static float3 Center(this SplineContainer splineContainer)
-        {
-            var points = splineContainer.Points();
-            var sum = float3.zero;
-            foreach (float3 point in points)
-                sum += point;
-            return sum / points.Count;
-        }
-
-        #endregion
     }
 }

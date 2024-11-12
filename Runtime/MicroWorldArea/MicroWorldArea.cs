@@ -26,7 +26,7 @@ namespace Cuku.MicroWorld
                 splines.Add(new Spline(spline));
             biomeSpline.Splines = splines;
 
-            Utilities.ShiftKnots(ref biomeSpline, transform.position);
+            SplineUtilities.ShiftKnots(ref biomeSpline, transform.position);
 
             ContentArea = area.AddComponent<SplineArea>();
             ContentArea.spline = biomeSpline;
@@ -35,7 +35,7 @@ namespace Cuku.MicroWorld
             ContentInstance.gameObject.name = Content.name;
             ContentInstance.transform.position = transform.position;
 
-            ContentInstance.transform.AdaptVolumeToSpline(ContentArea.spline);
+            ContentArea.spline.AdaptVolumeToSpline(ContentInstance.transform);
         }
 
         public bool IsValid()

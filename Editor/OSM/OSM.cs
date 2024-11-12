@@ -79,7 +79,7 @@ namespace Cuku.MicroWorld
                 (float)centerLat - deltaLatDegrees);
         }
 
-        internal static float3[][] ToWorldPoints(this Coordinate[][] element, Tile[] tiles)
+        internal static float3[][] ToWorldPoints(this Coordinate[][] element, ref Tile[] tiles)
         {
             var worldElement = new float3[element.Length][];
             for (int i = 0; i < element.Length; i++)
@@ -87,14 +87,14 @@ namespace Cuku.MicroWorld
                 var points = element[i];
                 worldElement[i] = new float3[points.Length];
                 for (int j = 0; j < points.Length; j++)
-                    worldElement[i][j] = points[j].ToTerrainPosition(tiles);
+                    worldElement[i][j] = points[j].ToTerrainPosition(ref tiles);
             }
             return worldElement;
         }
 
-        internal static float3 ToTerrainPosition(this Coordinate coordinate, Tile[] tiles)
+        internal static float3 ToTerrainPosition(this Coordinate coordinate, ref Tile[] tiles)
         {
-            (Tile tile, Terrain terrain) = coordinate.FindTileTerrainPair(tiles);
+            (Tile tile, Terrain terrain) = coordinate.FindTileTerrainPair(ref tiles);
             var minLat = tile.BottomRight.Lat;
             var maxLat = tile.TopLeft.Lat;
             var minLon = tile.TopLeft.Lon;
@@ -112,7 +112,7 @@ namespace Cuku.MicroWorld
             return new float3((float)posX, (float)posY, (float)posZ);
         }
 
-        internal static (Tile tile, Terrain terrain) FindTileTerrainPair(this Coordinate coordinate, Tile[] tiles)
+        internal static (Tile tile, Terrain terrain) FindTileTerrainPair(this Coordinate coordinate, ref Tile[] tiles)
         {
             foreach (var tile in tiles)
             {
