@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 
 namespace Cuku.MicroWorld
@@ -10,3 +11,4 @@ namespace Cuku.MicroWorld
         public Material Roof;
     }
 }
+#endif

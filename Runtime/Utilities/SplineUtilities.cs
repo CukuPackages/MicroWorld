@@ -3,13 +3,25 @@ using Unity.Mathematics;
 using System.Linq;
 using System.Collections.Generic;
 using UnityEngine.Splines;
-using static UnityEngine.GraphicsBuffer;
 using System;
+using NUnit.Framework.Constraints;
+using Freya;
 
 namespace Cuku.MicroWorld
 {
     public static class SplineUtilities
     {
+        public static void MakeLinear(this SplineContainer splineContainer)
+        {
+            foreach (var spline in splineContainer.Splines)
+            {
+                List<BezierKnot> knots = new List<BezierKnot>(spline.Knots);
+                spline.Clear();
+                foreach (var knot in knots)
+                    spline.Add(knot, TangentMode.Linear);
+            }
+        }
+
         public static void ShiftKnots(ref SplineContainer splineContainer, Vector3 shift)
         {
             var shiftAmmount = (float3)shift;
@@ -28,27 +40,24 @@ namespace Cuku.MicroWorld
             if (splineContainer == null)
                 throw new ArgumentNullException(nameof(splineContainer));
 
-            var spline = splineContainer.Spline;
-            if (spline == null || spline.Count < 3)
-                throw new InvalidOperationException("Spline must contain at least three points to determine orientation.");
-
-            float signedArea = 0f;
-
-            for (int i = 0; i < spline.Count; i++)
+            foreach (var spline in splineContainer.Splines)
             {
-                var current = spline[i].Position;
-                var next = spline[(i + 1) % spline.Count].Position;
+                float signedArea = 0f;
+                for (int i = 0; i < spline.Count; i++)
+                {
+                    var current = spline[i].Position;
+                    var next = spline[(i + 1) % spline.Count].Position;
 
-                signedArea += (next.x - current.x) * (next.z + current.z);
+                    signedArea += (next.x - current.x) * (next.z + current.z);
+                }
+
+                // If signed points is negative, points are in clockwise order
+                if (signedArea < 0 && clockwise)
+                    return;
+
+                spline.Knots = spline.Knots.Reverse();
             }
-
-            // If signed area is negative, points are in clockwise order
-            if (signedArea < 0 && clockwise)
-                return;
-
-            spline.Knots = spline.Knots.Reverse();
         }
-
 
         public static void SnapSplineToTerrain(ref SplineContainer splineContainer)
         {
@@ -107,6 +116,18 @@ namespace Cuku.MicroWorld
         }
 
         /// <summary>
+        /// Get all <see cref="SplineContainer"/> points in (X, Z) plane.
+        /// </summary>
+        public static List<Vector2> Points2D(this SplineContainer splineContainer)
+        {
+            var points = new List<Vector2>();
+            foreach (var spline in splineContainer.Splines)
+                foreach (var knot in spline.Knots)
+                    points.Add(new Vector2(knot.Position.x, knot.Position.z));
+            return points;
+        }
+
+        /// <summary>
         /// Get <see cref="SplineContainer"/> center of all points.
         /// </summary>
         public static float3 Center(this SplineContainer splineContainer)
@@ -117,6 +138,31 @@ namespace Cuku.MicroWorld
                 sum += point;
             return sum / points.Count;
         }
+
+        public static float Area(this SplineContainer splineContainer)
+        {
+            var points = splineContainer.Points();
+            int count = points.Count;
+            float area = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                float3 a = points[i];
+                float3 b = points[(i + 1) % count];
+                area += (b.x - a.x) * (b.z * a.z);
+            }
+
+            return math.abs(area) * 0.5f;
+        }
+
+        public static bool Contains(this SplineContainer splineContainer, float3 point)
+        {
+            var points2d = splineContainer.Points2D();
+            var point2d = new Vector2(point.x, point.z);
+            Debug.Log(points2d);
+            Debug.Log(point2d);
+            return new Polygon(points2d).Contains(point2d);
+        }
+
 
         public static float LowestPoint(this SplineContainer splineContainer)
         {

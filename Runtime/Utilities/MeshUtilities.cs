@@ -26,11 +26,11 @@ namespace Cuku.MicroWorld
             return pbMesh.Bake();
         }
 
-        public static void Combine(this GameObject mainObject, List<GameObject> gameObjects)
+        public static GameObject Merge(this GameObject mainObject, List<GameObject> gameObjects)
         {
             var pbMeshes = new List<ProBuilderMesh> { mainObject.ToProBuilderMesh() };
             pbMeshes.AddRange(gameObjects.ToProBuilderMeshes());
-            CombineMeshes.Combine(pbMeshes, pbMeshes[0])[0].Bake();
+            return CombineMeshes.Combine(pbMeshes, pbMeshes[0])[0].Bake();
         }
 
         public static GameObject Bake(this ProBuilderMesh pbMesh)

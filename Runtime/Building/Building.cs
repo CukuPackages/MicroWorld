@@ -1,5 +1,6 @@
-using System;
+#if UNITY_EDITOR
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Splines;
 using static BlockBuilding.BlockBuilding;
@@ -9,20 +10,30 @@ namespace Cuku.MicroWorld
     [RequireComponent(typeof(SplineContainer))]
     public class Building : MonoBehaviour
     {
-        [SerializeField] BuildingAssets assets;
-        [SerializeField] GameObject building;
-        [SerializeField] List<GameObject> parts = new List<GameObject>();
+        [SerializeField] public BuildingAssets assets;
+        [SerializeField] public GameObject building;
+        [SerializeField] public List<GameObject> parts = new List<GameObject>();
 
+
+        [ContextMenu(nameof(Clear))]
+        public void Clear()
+        {
+            Finish();
+            if (building != null)
+                GameObject.DestroyImmediate(building);
+        }
 
         [ContextMenu(nameof(Build))]
         public void Build()
         {
+            Clear();
+
             var spline = GetComponent<SplineContainer>();
             spline.SetOrder(clockwise: true);
 
-            building = new GameObject(assets.name, new Type[] { typeof(BlockBuilding.BlockBuilding) });
-            var blockBuilding = building.GetComponent<BlockBuilding.BlockBuilding>();
-            var center = spline.Center();
+            building = new GameObject(assets.name);
+            var blockBuilding = building.AddComponent<BlockBuilding.BlockBuilding>();
+            var center = Center();
             blockBuilding.transform.position = new Vector3(center.x, spline.LowestPoint(), center.z);
 
             blockBuilding.genCollider = false;
@@ -55,17 +66,21 @@ namespace Cuku.MicroWorld
             parts.Add(spline.Points().CreatePolyShape(blockBuilding.transform.position.y + columns[0].blocks[0].height.y, assets.Roof));
         }
 
-        [ContextMenu(nameof(Combine))]
-        public void Combine() => building.Combine(parts);
+        [ContextMenu(nameof(Merge))]
+        public void Merge() => building = building.Merge(parts);
 
-        [ContextMenu(nameof(Clean))]
-        public void Clean()
+        [ContextMenu(nameof(Finish))]
+        public void Finish()
         {
-            GameObject.DestroyImmediate(GetComponent<BlockBuilding.BlockBuilding>());
-            building = null;
+            if (building != null && GetComponent<BlockBuilding.BlockBuilding>())
+                GameObject.DestroyImmediate(GetComponent<BlockBuilding.BlockBuilding>());
+
             foreach (var part in parts)
                 GameObject.DestroyImmediate(part);
             parts.Clear();
         }
+
+        public float3 Center() => GetComponent<SplineContainer>().Center();
     }
 }
+#endif
