@@ -26,7 +26,7 @@ namespace Cuku.MicroWorld
                 splines.Add(new Spline(spline));
             biomeSpline.Splines = splines;
 
-            SplineUtilities.ShiftKnots(ref biomeSpline, transform.position);
+            SplineExtensions.ShiftKnots(ref biomeSpline, transform.position);
 
             ContentArea = area.AddComponent<SplineArea>();
             ContentArea.spline = biomeSpline;

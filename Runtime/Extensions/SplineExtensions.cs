@@ -4,12 +4,11 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine.Splines;
 using System;
-using NUnit.Framework.Constraints;
 using Freya;
 
 namespace Cuku.MicroWorld
 {
-    public static class SplineUtilities
+    public static class SplineExtensions
     {
         public static void MakeLinear(this SplineContainer splineContainer)
         {

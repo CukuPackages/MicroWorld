@@ -2,20 +2,20 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.ProBuilder;
 using UnityEngine.ProBuilder.MeshOperations;
-using Unity.Mathematics;
+using Cuku.Utilities;
 
 namespace Cuku.MicroWorld
 {
-    public static class MeshUtilities
+    public static class MeshExtensions
     {
-        public static GameObject CreatePolyShape(this List<float3> points, float height, Material material)
+        public static GameObject CreatePolyShape(this List<Vector2> points, float height, Material material)
         {
             var pbMesh = new GameObject("Poly Shape").AddComponent<ProBuilderMesh>();
             var polyShape = pbMesh.gameObject.AddComponent<PolyShape>();
 
             var controlPoints = new List<Vector3>();
             foreach (var point in points)
-                controlPoints.Add(new Vector3(point.x, height, point.z));
+                controlPoints.Add(new Vector3(point.x, height, point.y));
 
             polyShape.SetControlPoints(controlPoints);
 
@@ -28,6 +28,8 @@ namespace Cuku.MicroWorld
 
         public static GameObject Merge(this GameObject mainObject, List<GameObject> gameObjects)
         {
+            if (gameObjects.Count == 0)
+                return mainObject;
             var pbMeshes = new List<ProBuilderMesh> { mainObject.ToProBuilderMesh() };
             pbMeshes.AddRange(gameObjects.ToProBuilderMeshes());
             return CombineMeshes.Combine(pbMeshes, pbMeshes[0])[0].Bake();

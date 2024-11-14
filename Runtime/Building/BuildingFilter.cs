@@ -1,14 +1,17 @@
-using System.Collections.Generic;
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Splines;
 
 namespace Cuku.MicroWorld
 {
     [RequireComponent(typeof(SplineContainer))]
+    [RequireComponent(typeof(BuildingProperties))]
     public class BuildingFilter : MonoBehaviour
     {
-        [SerializeField] List<Building> buildings = new List<Building>();
+        [SerializeField] public bool IsGlobal;
+
+        [SerializeField] public List<Building> Buildings = new List<Building>();
 
 
         [ContextMenu(nameof(RunAll))]
@@ -21,8 +24,8 @@ namespace Cuku.MicroWorld
             Finish();
         }
 
-        [ContextMenu(nameof(Set))]
-        public void Set()
+        [ContextMenu(nameof(Show))]
+        public void Show()
         {
             var splineContainer = GetComponent<SplineContainer>();
             foreach (var spline in splineContainer.Splines)
@@ -33,38 +36,48 @@ namespace Cuku.MicroWorld
         [ContextMenu(nameof(Filter))]
         public void Filter()
         {
-            Set();
+            Show();
 
-            var spline = GetComponent<SplineContainer>();
+            var spline = Spline;
 
             var allBuildings = FindObjectsByType<Building>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             for (int i = 0; i < allBuildings.Length; i++)
-                if (spline.Contains(allBuildings[i].Center()))
-                    buildings.Add(allBuildings[i]);
+            {
+                var building = allBuildings[i];
+                if (building.IncludeInFilter && spline.Contains(building.Center()))
+                {
+                    Buildings.Add(building);
+                    building.Filter = this;
+                }
+            }
         }
 
         [ContextMenu(nameof(Build))]
-        public void Build() => buildings.ForEach(building => building.Build());
+        public void Build() => Buildings.ForEach(building => building.Build());
 
         [ContextMenu(nameof(MergeSingleBuildings))]
-        public void MergeSingleBuildings() => buildings.ForEach(building => building.Merge());
+        public void MergeSingleBuildings() => Buildings.ForEach(building => building.Merge());
 
         [ContextMenu(nameof(MergeAllBuildings))]
         public void MergeAllBuildings()
         {
-            var main = buildings[0].building;
+            var main = Buildings[0].BuildingObject;
             var parts = new List<GameObject>();
-            for (int i = 1; i < buildings.Count; i++)
-                parts.Add(buildings[i].building);
-            main.Merge(parts);
+            for (int i = 1; i < Buildings.Count; i++)
+                parts.Add(Buildings[i].BuildingObject);
+            _ = main.Merge(parts);
         }
 
         [ContextMenu(nameof(Finish))]
         public void Finish()
         {
-            buildings.ForEach(building => building.Clear());
-            buildings.Clear();
+            Buildings.ForEach(building => building.Clear());
+            Buildings.Clear();
         }
+
+        public SplineContainer Spline => GetComponent<SplineContainer>();
+
+        public BuildingProperties Properties => GetComponent<BuildingProperties>();
     }
 }
 #endif

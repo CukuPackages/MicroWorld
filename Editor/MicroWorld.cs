@@ -31,7 +31,7 @@ namespace Cuku.MicroWorld
         #region Terrain
 
         /// <summary>
-        /// Select TerrainData assets from the Project and it will create Terrain GameObjects in the scene.
+        /// Select TerrainData Assets from the Project and it will create Terrain GameObjects in the scene.
         /// </summary>
         [MenuItem(nameof(MicroWorld) + "/Create Terrain From Terrain Data", priority = 1)]
         internal static void CreateTerrainFromTerrainData()
@@ -41,14 +41,14 @@ namespace Cuku.MicroWorld
 
             if (terrainDataAssets == null || terrainDataAssets.Length == 0)
             {
-                Debug.LogError("No terrain data assets selected!");
+                Debug.LogError("No terrain data Assets selected!");
                 return;
             }
 
             // Create parent GameObject to hold all terrains
             GameObject parentTerrain = new GameObject("Terrain");
 
-            // Determine grid size based on the number of terrain data assets
+            // Determine grid size based on the number of terrain data Assets
             int gridSizeX = Mathf.CeilToInt(Mathf.Sqrt(terrainDataAssets.Length));
             int gridSizeZ = gridSizeX;
 
@@ -87,7 +87,7 @@ namespace Cuku.MicroWorld
                     // Rename the terrain object based on terrain data name without "D"
                     terrainObject.name = terrainData.name.Replace("D", "");
 
-                    // Set the parent of the terrain object
+                    // Show the parent of the terrain object
                     terrainObject.transform.SetParent(parentTerrain.transform);
 
                     // Store terrain in the array
@@ -95,7 +95,7 @@ namespace Cuku.MicroWorld
                 }
             }
 
-            // Set neighbors for each terrain
+            // Show neighbors for each terrain
             for (int z = 0; z < gridSizeZ; z++)
             {
                 for (int x = 0; x < gridSizeX; x++)
@@ -362,7 +362,7 @@ namespace Cuku.MicroWorld
         /// Select terrain or terrain parent GameObjects in Scene and it will set the texture
         /// (located in a parallel location) as the Tint Map for MicroSplat Global Texturing.
         /// </summary>
-        [MenuItem(nameof(MicroWorld) + "/Set Tint Texture To MicroSplat Terrain", priority = 200)]
+        [MenuItem(nameof(MicroWorld) + "/Show Tint Texture To MicroSplat Terrain", priority = 200)]
         internal static void SetTintTextureToMicroSplatTerrain()
         {
             var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<MicroSplatTerrain>()).ToArray();
@@ -455,7 +455,7 @@ namespace Cuku.MicroWorld
                 spline.SetTangentMode(TangentMode.Linear);
                 spline.Closed = closed;
                 splineContainer.Spline = spline;
-                SplineUtilities.SnapSplineToTerrain(ref splineContainer);
+                SplineExtensions.SnapSplineToTerrain(ref splineContainer);
             }
             Debug.Log($"{nameof(SetupElements)}: {elements.Length}");
         }
@@ -489,7 +489,7 @@ namespace Cuku.MicroWorld
             }
             catch (Exception e)
             {
-                Debug.LogError($"Select 1 {nameof(SplineContainer)} to use as filter: {e}");
+                Debug.LogError($"Select 1 {nameof(SplineContainer)} to use as Filter: {e}");
                 return;
             }
             // Area splines
@@ -497,7 +497,7 @@ namespace Cuku.MicroWorld
                 .Select(go => go.GetComponent<SplineContainer>()).ToArray();
             if (areas.Length < 1)
             {
-                Debug.LogError($"Select at least 1 {nameof(MicroWorldArea)} to filter!");
+                Debug.LogError($"Select at least 1 {nameof(MicroWorldArea)} to Filter!");
                 return;
             }
             for (var i = 0; i < areas.Length; i++)
