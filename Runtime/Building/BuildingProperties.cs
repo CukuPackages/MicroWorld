@@ -6,27 +6,31 @@ namespace Cuku.MicroWorld
     public class BuildingProperties : MonoBehaviour
     {
         [SerializeField] public float WorldScale;
+        [SerializeField] public float WindowOpeningWidth;
 
         [SerializeField] public bool OverrideFloorHeight;
-        [SerializeField] public float FloorHeight;
+        [SerializeField] public Vector2 FloorHeight;
 
         [SerializeField] public bool OverrideFloorCount;
-        [SerializeField] public int FloorCount;
+        [SerializeField] public Vector2Int FloorCount;
+
+        [SerializeField] public bool OverrideDoor;
+        [SerializeField] public Opening[] Door;
+
+        [SerializeField] public bool OverrideWindow;
+        [SerializeField] public Opening[] Window;
 
         [SerializeField] public bool OverrideRoofType;
-        [SerializeField] public RoofType RoofType;
+        [SerializeField] public RoofType[] RoofType;
 
         [SerializeField] public bool OverrideFacadeMaterial;
-        [SerializeField] public Material FacadeMaterial;
+        [SerializeField] public Material[] FacadeMaterial;
 
-        [SerializeField] public bool OverrideWindowMaterial;
-        [SerializeField] public Material WindowMaterial;
+        [SerializeField] public bool OverrideOpeningMaterial;
+        [SerializeField] public Material[] OpeningMaterial;
 
-        [SerializeField] public bool OverrideFlatRoofMaterial;
-        [SerializeField] public Material FlatRoofMaterial;
-
-        [SerializeField] public bool OverrideNonFlatRoofMaterial;
-        [SerializeField] public Material NonFlatRoofMaterial;
+        [SerializeField] public bool OverrideRoofMaterial;
+        [SerializeField] public Material[] RoofMaterial;
     }
 
     /// <summary>
