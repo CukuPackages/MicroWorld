@@ -154,13 +154,7 @@ namespace Cuku.MicroWorld
         }
 
         public static bool Contains(this SplineContainer splineContainer, float3 point)
-        {
-            var points2d = splineContainer.Points2D();
-            var point2d = new Vector2(point.x, point.z);
-            Debug.Log(points2d);
-            Debug.Log(point2d);
-            return new Polygon(points2d).Contains(point2d);
-        }
+            => new Polygon(splineContainer.Points2D()).Contains(new Vector2(point.x, point.z));
 
 
         public static float LowestPoint(this SplineContainer splineContainer)

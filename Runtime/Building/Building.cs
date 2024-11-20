@@ -1,7 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using Unity.Mathematics;
-using UnityEditor.PackageManager.UI;
 using UnityEngine;
 using UnityEngine.Splines;
 using static BlockBuilding.BlockBuilding;
@@ -19,20 +18,9 @@ namespace Cuku.MicroWorld
         [SerializeField] public BuildingFilter Filter;
 
 
-
-        [ContextMenu(nameof(RunAll))]
-        public void RunAll()
+        [ContextMenu(nameof(Create))]
+        public void Create()
         {
-            Build();
-            Merge();
-            Clear();
-        }
-
-        [ContextMenu(nameof(Build))]
-        public void Build()
-        {
-            Clear();
-
             var spline = Spline;
             spline.SetOrder(clockwise: true);
 
@@ -51,15 +39,6 @@ namespace Cuku.MicroWorld
             blockBuilding.matWindow = this.WindowMaterial();
             blockBuilding.matRoof = this.RoofMaterial();
 
-            // Add blocks
-            //var knots = spline.Spline.Knots.RemoveInline();
-            //var columns = new List<Column>();
-            //foreach (var pointPosition in points)
-            //    columns.Add(new Column()
-            //    {
-            //        pos = new Vector2(pointPosition.Position.x - center.x, pointPosition.Position.z - center.z),
-            //        blocks = new List<Block>() { new Block() { height = Vector2.one * floorHeight } }
-            //    });
             blockBuilding.blocks = AddColumns(spline.Spline.Knots.RemoveInline(), center, this.FloorHeight());
 
             blockBuilding.GenGameObject();
@@ -76,47 +55,59 @@ namespace Cuku.MicroWorld
         }
 
         [ContextMenu(nameof(Merge))]
-        public void Merge() => BuildingObject = BuildingObject.Merge(Parts);
-
-        [ContextMenu(nameof(Finish))]
-        public void Finish()
+        public void Merge()
         {
+            BuildingObject = BuildingObject.Merge(Parts);
+
             if (BuildingObject != null && GetComponent<BlockBuilding.BlockBuilding>())
                 GameObject.DestroyImmediate(GetComponent<BlockBuilding.BlockBuilding>());
+
             foreach (var part in Parts)
                 GameObject.DestroyImmediate(part);
             Parts.Clear();
         }
 
+        [ContextMenu(nameof(CreateAndMerge))]
+        public void CreateAndMerge()
+        {
+            Create();
+            Merge();
+        }
+
         [ContextMenu(nameof(Clear))]
         public void Clear()
         {
-            Finish();
             if (BuildingObject != null)
                 GameObject.DestroyImmediate(BuildingObject);
+
+            foreach (var part in Parts)
+                GameObject.DestroyImmediate(part);
+            Parts.Clear();
+
+            Filter = null;
         }
 
         List<Column> AddColumns(List<BezierKnot> points, float3 buildingCenter, float floorHeight)
         {
+            var openingWidth = BuildingExtensions.OpeningWidth;
+
             var columns = new List<Column>();
             for (int i = 0; i < points.Count; i++)
             {
                 var point = points[i];
+                var facadePoints = FacadePoints(points, point, i);
+                var facadeWidth = math.distance(facadePoints[0], facadePoints[1]);
+                var divisions = Mathf.FloorToInt(facadeWidth / openingWidth);
+                var columnWidth = facadeWidth / divisions;
 
-                var block = new Block() { height = Vector2.one * floorHeight };
-                var blockWidth = BlockWidth(points, point, i);
-
-                // Add window
                 var window = this.Window();
-                if (window &&
-                    blockWidth >= BuildingExtensions.GlobalFilter().Properties.WindowOpeningWidth * BuildingExtensions.WorldScale)
-                    AddOpening(ref block, window, blockWidth);
 
-                columns.Add(new Column()
-                {
-                    pos = new Vector2(point.Position.x - buildingCenter.x, point.Position.z - buildingCenter.z),
-                    blocks = new List<Block>() { block }
-                });
+                foreach (var facadePoint in SplitFacade(facadePoints[0], facadePoints[1], divisions))
+                    columns.Add(new Column()
+                    {
+                        pos = new Vector2(facadePoint.x - buildingCenter.x, facadePoint.y - buildingCenter.z),
+                        blocks = new List<Block>() { Block(floorHeight, columnWidth, window) }
+                    });
             }
 
             return columns;
@@ -157,15 +148,15 @@ namespace Cuku.MicroWorld
 
         public BuildingProperties Properties => GetComponent<BuildingProperties>();
 
-        float BlockWidth(List<BezierKnot> points, BezierKnot point, int i)
+        Block Block(float floorHeight, float width, Opening window = null)
         {
-            var pointPosition = new float2(point.Position.x, point.Position.z);
-            var nextPoint = points[(i + 1) % points.Count];
-            var nextPointPosition = new float2(nextPoint.Position.x, nextPoint.Position.z);
-            return math.distance(pointPosition, nextPointPosition);
+            var block = new Block() { height = Vector2.one * floorHeight };
+            if (window)
+                AddOpening(ref block, window, width);
+            return block;
         }
 
-        void AddOpening(ref Block block, Opening opening, float blockWidth)
+        void AddOpening(ref Block block, Opening opening, float width)
         {
             var worldScale = BuildingExtensions.WorldScale;
 
@@ -181,11 +172,28 @@ namespace Cuku.MicroWorld
 
             block.t = new Rect()
             {
-                x = blockWidth * opening.Position.x - size.x / 2f,
+                x = width * opening.Position.x - size.x / 2f,
                 y = block.height.x * opening.Position.y - size.y / 2f,
                 width = size.x,
                 height = size.y
             };
+        }
+
+        List<float2> SplitFacade(float2 pointA, float2 pointB, int divisions)
+        {
+            var points = new List<float2>() { pointA };
+            if (divisions <= 0) return points;
+            for (int i = 1; i < divisions; i++)
+                points.Add(Vector2.Lerp(pointA, pointB, (float)i / divisions));
+            return points;
+        }
+
+        float2[] FacadePoints(List<BezierKnot> points, BezierKnot point, int i)
+        {
+            var pointPosition = new float2(point.Position.x, point.Position.z);
+            var nextPoint = points[(i + 1) % points.Count];
+            var nextPointPosition = new float2(nextPoint.Position.x, nextPoint.Position.z);
+            return new float2[] { pointPosition, nextPointPosition };
         }
     }
 }

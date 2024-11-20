@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.ProBuilder;
 using UnityEngine.Splines;
 
 namespace Cuku.MicroWorld
@@ -10,35 +11,20 @@ namespace Cuku.MicroWorld
     public class BuildingFilter : MonoBehaviour
     {
         [SerializeField] public bool IsGlobal;
-
         [SerializeField] public List<Building> Buildings = new List<Building>();
 
+        public SplineContainer Spline => GetComponent<SplineContainer>();
+        public BuildingProperties Properties => GetComponent<BuildingProperties>();
 
-        [ContextMenu(nameof(RunAll))]
-        public void RunAll()
-        {
-            Filter();
-            Build();
-            MergeSingleBuildings();
-            MergeAllBuildings();
-            Finish();
-        }
-
-        [ContextMenu(nameof(Show))]
-        public void Show()
-        {
-            var splineContainer = GetComponent<SplineContainer>();
-            foreach (var spline in splineContainer.Splines)
-                spline.Closed = true;
-            splineContainer.MakeLinear();
-        }
 
         [ContextMenu(nameof(Filter))]
         public void Filter()
         {
-            Show();
+            Clear();
 
             var spline = Spline;
+            spline.Spline.Closed = true;
+            spline.MakeLinear();
 
             var allBuildings = FindObjectsByType<Building>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             for (int i = 0; i < allBuildings.Length; i++)
@@ -50,34 +36,70 @@ namespace Cuku.MicroWorld
                     building.Filter = this;
                 }
             }
+
+            if (!IsGlobal)
+                return;
+
+            foreach (var filter in BuildingExtensions.OtherFilters())
+                filter.Filter();
+
+            ClearFilters();
         }
 
-        [ContextMenu(nameof(Build))]
-        public void Build() => Buildings.ForEach(building => building.Build());
-
-        [ContextMenu(nameof(MergeSingleBuildings))]
-        public void MergeSingleBuildings() => Buildings.ForEach(building => building.Merge());
-
-        [ContextMenu(nameof(MergeAllBuildings))]
-        public void MergeAllBuildings()
+        [ContextMenu(nameof(CreateBuildings))]
+        public void CreateBuildings()
         {
-            var main = Buildings[0].BuildingObject;
-            var parts = new List<GameObject>();
-            for (int i = 1; i < Buildings.Count; i++)
-                parts.Add(Buildings[i].BuildingObject);
-            _ = main.Merge(parts);
+            ClearFilters();
+
+            if (IsGlobal)
+                foreach (var filter in BuildingExtensions.OtherFilters())
+                    filter.Buildings.ForEach(building => building.Create());
+
+            Buildings.ForEach(building => building.Create());
         }
 
-        [ContextMenu(nameof(Finish))]
-        public void Finish()
+        [ContextMenu(nameof(MergeBuildings))]
+        public void MergeBuildings()
+        {
+            ClearFilters();
+
+            if (IsGlobal)
+                foreach (var filter in BuildingExtensions.OtherFilters())
+                    filter.Buildings.ForEach(building => building.Merge());
+
+            Buildings.ForEach(building => building.Merge());
+        }
+
+        [ContextMenu(nameof(CreateAndMerge))]
+        public void CreateAndMerge()
+        {
+            Filter();
+            CreateBuildings();
+            MergeBuildings();
+            Clear();
+        }
+
+        [ContextMenu(nameof(Clear))]
+        public void Clear()
         {
             Buildings.ForEach(building => building.Clear());
             Buildings.Clear();
         }
 
-        public SplineContainer Spline => GetComponent<SplineContainer>();
+        public void ClearFilters()
+        {
+            var globalFilter = BuildingExtensions.GlobalFilter();
 
-        public BuildingProperties Properties => GetComponent<BuildingProperties>();
+            var filters = BuildingExtensions.OtherFilters();
+
+            foreach (var filter in filters)
+                globalFilter.Buildings.RemoveAll(item => filter.Buildings.Contains(item));
+
+            foreach (var currentFilter in filters)
+                foreach (var filter in filters)
+                    if (!currentFilter.IsGlobal && currentFilter != filter)
+                        filter.Buildings.RemoveAll(item => currentFilter.Buildings.Contains(item));
+        }
     }
 }
 #endif
