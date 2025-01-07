@@ -120,15 +120,6 @@ Convert Surrounding Area terrain into mesh terrain:
 3. Select Foliage Renderer game object - Shader Patcher - Scan - Patch
 4. Add Indirect Camera component to the Camera
 
-> [!NOTE]
-> If you are using TVE - The Visual Engine, set the TVE ShaderManager to FoliageRenderer Mode.
-
-### Optimization
-1. Foliage Renderer - Uncheck Auto Refresh Terrains
-2. Window - FoliageRenderer - Disable Force Scene View Refresh
-3. Indirect Renderer - Enable Hi Z Occlusion if it helps
-4. Indirect Renderer - Increase Max Graphics Buffer Caches
-
 ### Adjust Shadows
 1. HDRP Global Settings - Max Shadow Distance
 2. Main Directional Light - Shadows - Resolution
@@ -144,6 +135,12 @@ Convert Surrounding Area terrain into mesh terrain:
 7. Right Click MVBiome component - Spawn
 8. The Biome will be created and parented under MicroVerse
 9. Adjust it as desired
+
+### Optimizations
+1. Foliage Renderer - Uncheck Auto Refresh Terrains
+2. Window - FoliageRenderer - Disable Force Scene View Refresh
+3. Indirect Renderer - Enable Hi Z Occlusion if it helps
+4. Indirect Renderer - Increase Max Graphics Buffer Caches
 
 ## OSM - Open Street Maps
 OSM data can also be used to extract the vegetation areas, roads, buildings, etc.
