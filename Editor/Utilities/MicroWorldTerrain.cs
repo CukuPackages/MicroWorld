@@ -1,6 +1,5 @@
 using JBooth.MicroSplat;
 using JBooth.MicroVerseCore;
-using JBooth.FoliageRendering;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -10,8 +9,6 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.Splines;
-using Unity.Mathematics;
 
 #if TERRALAND
 using TerraUnity.TerraLand;
@@ -19,21 +16,12 @@ using TerraUnity.TerraLand;
 
 namespace Cuku.MicroWorld
 {
-    public static class MicroWorld
+    public static class MicroWorldTerrain
     {
-        #region Paths
-
-        internal static string MicroVerseTerrainDataPath(this TerrainData terrainData)
-             => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrainData))), nameof(MicroVerse));
-
-        #endregion
-
-        #region Terrain
-
         /// <summary>
         /// Select TerrainData Assets from the Project and it will create Terrain GameObjects in the scene.
         /// </summary>
-        [MenuItem(nameof(MicroWorld) + "/Create Terrain From Terrain Data", priority = 1)]
+        [MenuItem(nameof(MicroWorld) + "/Terrain/Create Terrain From Terrain Data", priority = 1)]
         internal static void CreateTerrainFromTerrainData()
         {
             var terrainDataAssets = Array.FindAll(Selection.objects, obj => obj is TerrainData)
@@ -111,14 +99,10 @@ namespace Cuku.MicroWorld
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }
 
-        #endregion
-
-        #region MicroVerse
-
         /// <summary>
         /// Select terrain or terrains parent GameObject in the Scene and it will setup MicroVerse.
         /// </summary>
-        [MenuItem(nameof(MicroWorld) + "/Convert Terrain To MicroVerse", priority = 100)]
+        [MenuItem(nameof(MicroWorld) + "/Terrain/Convert Terrain To MicroVerse", priority = 2)]
         internal static void ConvertTerrainToMicroVerse()
         {
             Debug.Log("Converting Terrain to MicroVerse...");
@@ -144,7 +128,7 @@ namespace Cuku.MicroWorld
                 Debug.Log("Terrain data is already extracted");
             else
             {
-                DuplicateDirectory(terrainDirectory, newTerrainDirectory);
+                MicroWorld.DuplicateDirectory(terrainDirectory, newTerrainDirectory);
 #if TERRALAND
                 ExtractTerrainTilesInfo();
 #else
@@ -193,7 +177,7 @@ namespace Cuku.MicroWorld
         /// <summary>
         /// Select terrain or terrains parent GameObject in the Scene and extract the data to a JSON file for further processing.
         /// </summary>
-        [MenuItem(nameof(MicroWorld) + "/Extract Terrain Tiles Info", priority = 101)]
+        [MenuItem(nameof(MicroWorld) + "/Terrain/Extract Terrain Tiles Info", priority = 3)]
         internal static void ExtractTerrainTilesInfo()
         {
             Debug.Log("Extractng Terrain Tiles Info...");
@@ -214,6 +198,35 @@ namespace Cuku.MicroWorld
             AssetDatabase.Refresh();
         }
 #endif
+
+        /// <summary>
+        /// Select terrain or terrain parent GameObjects in Scene and it will set the texture
+        /// (located in a parallel location) as the Tint Map for MicroSplat Global Texturing.
+        /// </summary>
+        [MenuItem(nameof(MicroWorld) + "/Terrain/Show Tint Texture To MicroSplat Terrain", priority = 4)]
+        internal static void SetTintTextureToMicroSplatTerrain()
+        {
+            var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<MicroSplatTerrain>()).ToArray();
+            if (terrains.Length == 0)
+            {
+                Debug.LogError($"Select Objects with '{nameof(MicroSplatTerrain)}' component!");
+                return;
+            }
+
+            foreach (var msTerrain in terrains)
+            {
+                var terrainData = msTerrain.terrain.terrainData;
+                if (terrainData == null)
+                {
+                    Debug.LogError($"{msTerrain.name} has invalid Terrain Data");
+                    continue;
+                }
+                var textureAbsolutePath = $"{Path.Combine(Directory.GetParent(Directory.GetParent(AssetDatabase.GetAssetPath(terrainData)).FullName).FullName, nameof(Texture), $"{terrainData.name.Replace("D", "T")}.jpg")}";
+                msTerrain.tintMapOverride = AssetDatabase.LoadAssetAtPath<Texture2D>(textureAbsolutePath.Substring(textureAbsolutePath.IndexOf("Assets")));
+            }
+
+            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
+        }
 
         /// <summary>
         /// Converts TerrainData to Heightmaps and saves in a parallel location.
@@ -325,248 +338,5 @@ namespace Cuku.MicroWorld
             Debug.Log($"Saved Heightmap: {filePath}");
             UnityEngine.Object.DestroyImmediate(texture);
         }
-
-        internal static void DuplicateDirectory(string sourceDirPath, string destinationDirPath)
-        {
-            if (!Directory.Exists(destinationDirPath))
-                Directory.CreateDirectory(destinationDirPath);
-
-            // Get the files in the source directory
-            string[] files = Directory.GetFiles(sourceDirPath);
-
-            // Copy each file to the destination directory
-            foreach (string file in files)
-            {
-                string fileName = Path.GetFileName(file);
-                string destinationFilePath = Path.Combine(destinationDirPath, fileName);
-                File.Copy(file, destinationFilePath, false);
-            }
-
-            // Get the subdirectories in the source directory
-            string[] subDirectories = Directory.GetDirectories(sourceDirPath);
-
-            // Recursively duplicate each subdirectory
-            foreach (string subDirectory in subDirectories)
-            {
-                string directoryName = Path.GetFileName(subDirectory);
-                string destinationSubDirPath = Path.Combine(destinationDirPath, directoryName);
-                DuplicateDirectory(subDirectory, destinationSubDirPath);
-            }
-        }
-
-        #endregion
-
-        #region MicroSplat
-
-        /// <summary>
-        /// Select terrain or terrain parent GameObjects in Scene and it will set the texture
-        /// (located in a parallel location) as the Tint Map for MicroSplat Global Texturing.
-        /// </summary>
-        [MenuItem(nameof(MicroWorld) + "/Show Tint Texture To MicroSplat Terrain", priority = 200)]
-        internal static void SetTintTextureToMicroSplatTerrain()
-        {
-            var terrains = Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<MicroSplatTerrain>()).ToArray();
-            if (terrains.Length == 0)
-            {
-                Debug.LogError($"Select Objects with '{nameof(MicroSplatTerrain)}' component!");
-                return;
-            }
-
-            foreach (var msTerrain in terrains)
-            {
-                var terrainData = msTerrain.terrain.terrainData;
-                if (terrainData == null)
-                {
-                    Debug.LogError($"{msTerrain.name} has invalid Terrain Data");
-                    continue;
-                }
-                var textureAbsolutePath = $"{Path.Combine(Directory.GetParent(Directory.GetParent(AssetDatabase.GetAssetPath(terrainData)).FullName).FullName, nameof(Texture), $"{terrainData.name.Replace("D", "T")}.jpg")}";
-                msTerrain.tintMapOverride = AssetDatabase.LoadAssetAtPath<Texture2D>(textureAbsolutePath.Substring(textureAbsolutePath.IndexOf("Assets")));
-            }
-
-            EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
-        }
-
-        #endregion
-
-        #region Elements
-
-        /// <summary>
-        /// Select 1 <see cref="OSMExtractor"/> asset and 1 <see cref="MicroWorldArea"/> asset from the Project,
-        /// and it will set them up in the scene.
-        /// </summary>
-        [MenuItem(nameof(MicroWorld) + "/Setup Elements", priority = 300)]
-        internal static void SetupElements()
-        {
-            var dataAssets = Array.FindAll(Selection.objects, obj => obj is OSMExtractor)
-                .Select(obj => obj as OSMExtractor).ToArray();
-            if (dataAssets.Length != 1)
-            {
-                Debug.LogError($"Select exactly 1 {nameof(OSMExtractor)} file!");
-                return;
-            }
-
-            var dataAsset = dataAssets[0];
-            var data = string.Empty;
-            try
-            {
-                data = File.ReadAllText(dataAsset.DataPath());
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("Can't extract data: " + e.Message);
-            }
-
-            Coordinate[][] elements = default;
-            try
-            {
-                elements = JsonConvert.DeserializeObject<Coordinate[][]>(data);
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("Extracted data is invalid: " + e.Message);
-            }
-
-            GameObject prefab = default;
-            try
-            {
-                prefab = Array.FindAll(Selection.objects, obj => obj is GameObject)
-                    .Select(obj => obj as GameObject).ToArray()[0];
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Select one prefab with {nameof(SplineContainer)} component: " + e.Message);
-            }
-            if (!prefab.GetComponent<SplineContainer>())
-            {
-                Debug.LogError($"Prefab is missing {nameof(SplineContainer)} component!");
-                return;
-            }
-
-            var elementsParent = new GameObject(Path.GetFileNameWithoutExtension(AssetDatabase.GetAssetPath(dataAsset))).transform;
-            var tiles = JsonConvert.DeserializeObject<Tile[]>(File.ReadAllText(
-                Path.Combine(GameObject.FindFirstObjectByType<Terrain>(FindObjectsInactive.Include).terrainData.MicroVerseTerrainDataPath(), nameof(Tile) + ".json")));
-            foreach (var element in elements.ToWorldPoints(ref tiles))
-            {
-                var splineContainer = (PrefabUtility.InstantiatePrefab(prefab, parent: elementsParent) as GameObject)
-                    .GetComponent<SplineContainer>();
-                var closed = splineContainer.Spline.Closed;
-                var spline = new Spline(element.ToKnots(closed));
-                spline.SetTangentMode(TangentMode.Linear);
-                spline.Closed = closed;
-                splineContainer.Spline = spline;
-                SplineExtensions.SnapSplineToTerrain(ref splineContainer);
-            }
-            Debug.Log($"{nameof(SetupElements)}: {elements.Length}");
-        }
-
-        [MenuItem(nameof(MicroWorld) + "/Center Spline Pivot", priority = 302)]
-        internal static void CenterSplinePivot()
-        {
-            foreach (var splineContainer in Selection.gameObjects.Where(go => go.GetComponent<SplineContainer>())
-                .Select(go => go.GetComponent<SplineContainer>()).ToArray())
-            {
-                var shift = (float3)splineContainer.transform.position;
-                splineContainer.transform.position = Vector3.zero;
-                var knots = splineContainer.Spline.Knots.ToArray();
-                for (int i = 0; i < knots.Length; i++)
-                {
-                    var knot = knots[i];
-                    knot.Position += shift;
-                    splineContainer.Spline.SetKnot(i, knot);
-                }
-            }
-        }
-
-        [MenuItem(nameof(MicroWorld) + "/Filter Elements by Spline", priority = 301)]
-        internal static void FilterElements()
-        {
-            SplineContainer targetSpline = default;
-            try
-            {
-                targetSpline = Selection.gameObjects.FirstOrDefault(go => !go.GetComponent<MicroWorldArea>())
-                    .GetComponent<SplineContainer>();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Select 1 {nameof(SplineContainer)} to use as Filter: {e}");
-                return;
-            }
-            // Area splines
-            var areas = Selection.gameObjects.Where(go => go.GetComponent<MicroWorldArea>())
-                .Select(go => go.GetComponent<SplineContainer>()).ToArray();
-            if (areas.Length < 1)
-            {
-                Debug.LogError($"Select at least 1 {nameof(MicroWorldArea)} to Filter!");
-                return;
-            }
-            for (var i = 0; i < areas.Length; i++)
-            {
-                var area = areas[i];
-                var include = false;
-                var points = area.Spline.Knots;
-                foreach (var point in points)
-                {
-                    float t;
-                    SplineUtility.GetNearestPoint(targetSpline.Spline, point.Position, out _, out t);
-                    var pos = SplineUtility.EvaluatePosition(targetSpline.Spline, t);
-                    if (math.distance(SplineUtility.EvaluatePosition(targetSpline.Spline, t), point.Position) <= 3000)
-                    {
-                        include = true;
-                        continue;
-                    }
-                }
-                if (!include)
-                {
-                    Undo.RecordObject(area.gameObject, nameof(FilterElements));
-                    area.gameObject.SetActive(false);
-                    EditorUtility.SetDirty(area.gameObject);
-                }
-            }
-        }
-
-        #endregion
-
-        #region Vegetation
-
-        [MenuItem(nameof(MicroWorld) + "/Apply Foliage Renderer Settings", priority = 400)]
-        static void ApplyFoliageRendererSettings()
-        {
-            if (!IndirectRenderer.hasInstance && !TerrainFoliageRenderer.hasInstance)
-            {
-                Debug.LogError($"Create Foliage Renderer first!");
-                return;
-            }
-            // Setup Indirect Renderer
-            IndirectRenderer.instance.cullingCamera = Camera.main;
-            IndirectRenderer.instance.hiZOcclusion = IndirectRenderer.ModeToggle.On;
-
-            TerrainFoliageRenderer settings = default;
-            try
-            {
-                settings = Array.FindAll(Selection.objects, obj => obj is GameObject)
-                    .Select(obj => obj as GameObject).ToArray()[0].GetComponent<TerrainFoliageRenderer>();
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"Select one prefab with {nameof(TerrainFoliageRenderer)} component: " + e.Message);
-            }
-
-            var instance = TerrainFoliageRenderer.instance;
-            instance.treeOptions = settings.treeOptions;
-            instance.detailOptions = settings.detailOptions;
-
-            // Immediately refreshes all tree and detail instances (regardless of distance)
-            foreach (var tfp in GameObject.FindObjectsOfType<TerrainFoliageProvider>())
-            {
-                tfp.forceRefreshOnEnable = true;
-                // Match terrain settings to Foliage Renderer
-                tfp.Terrain.treeDistance = settings.treeOptions.maxDrawDistance;
-                tfp.Terrain.detailObjectDistance = settings.detailOptions.maxDrawDistance;
-                tfp.Terrain.detailObjectDensity = settings.detailOptions.density;
-            }
-        }
-
-        #endregion
     }
 }

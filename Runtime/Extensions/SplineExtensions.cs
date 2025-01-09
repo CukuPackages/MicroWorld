@@ -10,14 +10,14 @@ namespace Cuku.MicroWorld
 {
     public static class SplineExtensions
     {
-        public static void MakeLinear(this SplineContainer splineContainer)
+        public static void SetTangentMode(this SplineContainer splineContainer, TangentMode tangentMode)
         {
             foreach (var spline in splineContainer.Splines)
             {
                 List<BezierKnot> knots = new List<BezierKnot>(spline.Knots);
                 spline.Clear();
                 foreach (var knot in knots)
-                    spline.Add(knot, TangentMode.Linear);
+                    spline.Add(knot, tangentMode);
             }
         }
 

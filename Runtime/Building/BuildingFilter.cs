@@ -1,7 +1,6 @@
 #if UNITY_EDITOR
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.ProBuilder;
 using UnityEngine.Splines;
 
 namespace Cuku.MicroWorld
@@ -24,7 +23,7 @@ namespace Cuku.MicroWorld
 
             var spline = Spline;
             spline.Spline.Closed = true;
-            spline.MakeLinear();
+            spline.SetTangentMode(TangentMode.Linear);
 
             var allBuildings = FindObjectsByType<Building>(FindObjectsInactive.Include, FindObjectsSortMode.None);
             for (int i = 0; i < allBuildings.Length; i++)

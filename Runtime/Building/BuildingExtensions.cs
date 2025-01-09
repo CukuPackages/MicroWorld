@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -99,4 +100,5 @@ namespace Cuku.MicroWorld
             return GlobalFilter().Properties.RoofMaterial[Random.Range(0, GlobalFilter().Properties.RoofMaterial.Length)];
         }
     }
-}
+} 
+#endif

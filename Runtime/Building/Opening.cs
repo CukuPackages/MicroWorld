@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using UnityEngine;
 
 namespace Cuku.MicroWorld
@@ -10,4 +11,5 @@ namespace Cuku.MicroWorld
         [Space] public float Width;
         [Space] public float Depth;
     }
-}
+} 
+#endif
