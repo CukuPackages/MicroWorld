@@ -1,8 +1,8 @@
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Splines;
-using Unity.Mathematics;
 
 namespace Cuku.MicroWorld
 {
@@ -12,30 +12,148 @@ namespace Cuku.MicroWorld
         internal static void CenterPivot()
         {
             foreach (var splineContainer in Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
-                .Where(splineContainer => splineContainer != null).ToArray())
+                    .Where(splineContainer => splineContainer != null))
+                splineContainer.CenterPivot();
+        }
+
+        [MenuItem(nameof(MicroWorld) + "/Spline/Split Intersecting", priority = 2)]
+        internal static void SplitIntersecting()
+        {
+            var splineContainers = Selection.gameObjects
+                .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
+                .Where(splineContainer => splineContainer != null)
+                .ToList();
+
+            if (splineContainers.Count < 2)
             {
-                var shift = (float3)splineContainer.transform.position;
-                splineContainer.transform.position = Vector3.zero;
-                var knots = splineContainer.Spline.Knots.ToArray();
-                for (int i = 0; i < knots.Length; i++)
+                Debug.LogWarning("Please select at least two spline containers to detect intersections.");
+                return;
+            }
+
+            foreach (var containerA in splineContainers)
+                foreach (var containerB in splineContainers)
                 {
-                    var knot = knots[i];
-                    knot.Position += shift;
-                    splineContainer.Spline.SetKnot(i, knot);
+                    if (containerA == containerB)
+                        continue;
+
+                    var splineA = containerA.Spline;
+                    var splineB = containerB.Spline;
+
+                    // Iterate through the inner points of splineA
+                    for (int i = 1; i < splineA.Count - 1; i++)
+                    {
+                        var pointA = splineA[i].Position;
+
+                        // Compare with all points of splineB
+                        for (int j = 0; j < splineB.Count; j++)
+                        {
+                            var pointB = splineB[j].Position;
+
+                            // Check if positions match
+                            if (pointA.Equals(pointB))
+                            {
+                                // Split splineA at the matching point
+                                var knotIndexA = containerA.FindClosestKnotIndex(pointA);
+                                if (knotIndexA.HasValue)
+                                {
+                                    SplineUtility.SplitSplineOnKnot(containerA, knotIndexA.Value);
+                                }
+
+                                // Split splineB at the matching point
+                                var knotIndexB = containerB.FindClosestKnotIndex(pointB);
+                                if (knotIndexB.HasValue)
+                                {
+                                    SplineUtility.SplitSplineOnKnot(containerB, knotIndexB.Value);
+                                }
+                            }
+                        }
+                    }
+                }
+
+            // Split and move resulting splines to new GameObjects
+            foreach (var container in splineContainers)
+                if (container.Splines.Count > 1)
+                {
+                    var parent = container.transform.parent;
+                    for (int i = 0; i < container.Splines.Count; i++)
+                    {
+                        var newGameObject = new GameObject(container.gameObject.name);
+                        newGameObject.transform.SetParent(parent, worldPositionStays: false);
+                        var newSplineContainer = newGameObject.AddComponent<SplineContainer>();
+                        newSplineContainer.Spline = container.Splines[i];
+                    }
+
+                    GameObject.DestroyImmediate(container.gameObject);
+                }
+        }
+
+        [MenuItem(nameof(MicroWorld) + "/Spline/Create Intersections", priority = 3)]
+        internal static void CreateIntersections()
+        {
+            var splineContainers = Selection.gameObjects
+                .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
+                .Where(splineContainer => splineContainer != null)
+                .ToList();
+
+            if (splineContainers.Count < 2)
+            {
+                Debug.LogWarning("Please select at least two spline containers to detect intersections.");
+                return;
+            }
+
+            var intersectionDictionary = new Dictionary<Vector3, HashSet<int>>();
+
+            for (int i = 0; i < splineContainers.Count; i++)
+            {
+                var splineA = splineContainers[i];
+                var pointsA = new[]
+                {
+                    splineA.Spline[0].Position,
+                    splineA.Spline[splineA.Spline.Count - 1].Position
+                };
+
+                for (int j = i + 1; j < splineContainers.Count; j++)
+                {
+                    var splineB = splineContainers[j];
+                    var pointsB = new[]
+                    {
+                        splineB.Spline[0].Position,
+                        splineB.Spline[splineB.Spline.Count - 1].Position
+                    };
+
+                    foreach (var pointA in pointsA)
+                    {
+                        foreach (var pointB in pointsB)
+                        {
+                            if (Vector3.Distance(pointA, pointB) < Mathf.Epsilon)
+                            {
+                                if (!intersectionDictionary.ContainsKey(pointA))
+                                {
+                                    intersectionDictionary[pointA] = new HashSet<int>();
+                                }
+                                intersectionDictionary[pointA].Add(i);
+                                intersectionDictionary[pointA].Add(j);
+                            }
+                        }
+                    }
+                }
+            }
+
+            var intersectionsParent = new GameObject("Intersections").transform;
+            foreach (var intersection in intersectionDictionary)
+            {
+                var count = intersection.Value.Count;
+                if (count >= 3)
+                {
+                    var intersectionObject = new GameObject($"Intersection {count}");
+                    intersectionObject.transform.position = intersection.Key;
+                    intersectionObject.transform.SetParent(intersectionsParent);
                 }
             }
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Smooth", priority = 2)]
-        internal static void Smooth()
-        {
-            foreach (var splineContainer in Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
-                    .Where(splineContainer => splineContainer != null).ToArray())
-                splineContainer.SetTangentMode(TangentMode.AutoSmooth);
-        }
-
-        [MenuItem(nameof(MicroWorld) + "/Spline/Connect Continuous", priority = 3)]
-        internal static void Connect()
+        [MenuItem(nameof(MicroWorld) + "/Spline/Connect Continuous", priority = 4)]
+        internal static void ConnectContinuous()
         {
             var splineContainers = Selection.gameObjects
                 .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
@@ -59,7 +177,7 @@ namespace Cuku.MicroWorld
                     for (int j = i + 1; j < splineContainers.Count; j++)
                     {
                         var targetSpline = splineContainers[j];
-                        if (TryConnectSplines(baseSpline, targetSpline))
+                        if (baseSpline.Connect(targetSpline))
                         {
                             Object.DestroyImmediate(targetSpline.gameObject);
                             splineContainers.RemoveAt(j);
@@ -74,55 +192,12 @@ namespace Cuku.MicroWorld
             Debug.Log($"Merged {mergeCount} splines.");
         }
 
-        private static bool TryConnectSplines(SplineContainer baseSplineContainer, SplineContainer targetSplineContainer)
+        [MenuItem(nameof(MicroWorld) + "/Spline/Smooth", priority = 5)]
+        internal static void Smooth()
         {
-            var baseSpline = baseSplineContainer.Spline;
-            var targetSpline = targetSplineContainer.Spline;
-
-            var baseFirst = baseSpline[0].Position;
-            var baseLast = baseSpline[baseSpline.Count - 1].Position;
-
-            var targetFirst = targetSpline[0].Position;
-            var targetLast = targetSpline[targetSpline.Count - 1].Position;
-
-            // Case 1: base last connects to target first
-            if (Vector3.Distance(new Vector3(baseLast.x, 0, baseLast.z), new Vector3(targetFirst.x, 0, targetFirst.z)) < Mathf.Epsilon)
-            {
-                Vector3 connectionPoint = (baseLast + targetFirst) / 2;
-                baseSpline[baseSpline.Count - 1] = new BezierKnot(connectionPoint);
-                foreach (var knot in targetSpline.Skip(1))
-                    baseSpline.Add(knot);
-                return true;
-            }
-            // Case 2: base first connects to target last
-            else if (Vector3.Distance(new Vector3(baseFirst.x, 0, baseFirst.z), new Vector3(targetLast.x, 0, targetLast.z)) < Mathf.Epsilon)
-            {
-                Vector3 connectionPoint = (baseFirst + targetLast) / 2;
-                baseSpline[0] = new BezierKnot(connectionPoint);
-                for (int i = targetSpline.Count - 2; i >= 0; i--)
-                    baseSpline.Insert(0, targetSpline[i]);
-                return true;
-            }
-            // Case 3: base last connects to target last (reverse target spline)
-            else if (Vector3.Distance(new Vector3(baseLast.x, 0, baseLast.z), new Vector3(targetLast.x, 0, targetLast.z)) < Mathf.Epsilon)
-            {
-                Vector3 connectionPoint = (baseLast + targetLast) / 2;
-                baseSpline[baseSpline.Count - 1] = new BezierKnot(connectionPoint);
-                for (int i = targetSpline.Count - 2; i >= 0; i--)
-                    baseSpline.Add(targetSpline[i]);
-                return true;
-            }
-            // Case 4: base first connects to target first (reverse target spline)
-            else if (Vector3.Distance(new Vector3(baseFirst.x, 0, baseFirst.z), new Vector3(targetFirst.x, 0, targetFirst.z)) < Mathf.Epsilon)
-            {
-                Vector3 connectionPoint = (baseFirst + targetFirst) / 2;
-                baseSpline[0] = new BezierKnot(connectionPoint);
-                for (int i = 1; i < targetSpline.Count; i++)
-                    baseSpline.Insert(0, targetSpline[i]);
-                return true;
-            }
-
-            return false;
+            foreach (var splineContainer in Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
+                    .Where(splineContainer => splineContainer != null))
+                splineContainer.SetTangentMode(TangentMode.AutoSmooth);
         }
     }
 }
