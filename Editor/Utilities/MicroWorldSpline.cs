@@ -16,80 +16,143 @@ namespace Cuku.MicroWorld
                 splineContainer.CenterPivot();
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Split Intersecting", priority = 2)]
-        internal static void SplitIntersecting()
+        [MenuItem(nameof(MicroWorld) + "/Spline/Crop", priority = 2)]
+        internal static void Crop()
         {
-            var splineContainers = Selection.gameObjects
-                .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
-                .Where(splineContainer => splineContainer != null)
-                .ToList();
+            Debug.Log("Cropping Splines...");
 
-            if (splineContainers.Count < 2)
+            var startTime = System.DateTime.Now;
+
+            // Find the Cropper spline by name
+            var cropperObject = GameObject.Find("Cropper");
+            if (cropperObject == null)
             {
-                Debug.LogWarning("Please select at least two spline containers to detect intersections.");
+                Debug.LogError("Cropper object not found. Make sure there is a GameObject named 'Cropper' in the scene.");
                 return;
             }
 
-            foreach (var containerA in splineContainers)
-                foreach (var containerB in splineContainers)
+            var cropper = cropperObject.GetComponent<SplineContainer>();
+            if (cropper == null)
+            {
+                Debug.LogError("Cropper object does not have a SplineContainer component.");
+                return;
+            }
+
+            int cropped = 0;
+            foreach (var splineContainer in Selection.gameObjects
+                         .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
+                         .Where(splineContainer => splineContainer != null))
+            {
+                var spline = splineContainer.Splines[0];
+                var knots = spline.Knots.ToList(); // Copy to avoid modifying the collection during iteration
+                foreach (var knot in knots)
+                    if (!cropper.Contains(knot.Position))
+                        spline.Remove(knot); // Remove the knot if it's outside
+
+                // Destroy the GameObject if the spline has no points left
+                if (!spline.Knots.Any())
                 {
-                    if (containerA == containerB)
-                        continue;
+                    Object.DestroyImmediate(splineContainer.gameObject);
+                    cropped++;
+                }
+            }
 
-                    var splineA = containerA.Spline;
-                    var splineB = containerB.Spline;
+            var timePassed = System.DateTime.Now - startTime;
+            Debug.Log($"Cropped {cropped} in {(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
+        }
 
-                    // Iterate through the inner points of splineA
-                    for (int i = 1; i < splineA.Count - 1; i++)
+
+        [MenuItem(nameof(MicroWorld) + "/Spline/Split Intersecting", priority = 3)]
+        internal static void SplitIntersecting()
+        {
+            Debug.Log("Split Intersecting...");
+
+            var startTime = System.DateTime.Now;
+
+            bool canSplit;
+            do
+            {
+                var splineContainers = Selection.gameObjects
+                    .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
+                    .Where(splineContainer => splineContainer != null)
+                    .ToList();
+
+                if (splineContainers.Count < 2)
+                {
+                    Debug.LogWarning("Please select at least two spline containers to detect intersections.");
+                    return;
+                }
+
+                foreach (var containerA in splineContainers)
+                    foreach (var containerB in splineContainers)
                     {
-                        var pointA = splineA[i].Position;
+                        if (containerA == containerB)
+                            continue;
 
-                        // Compare with all points of splineB
-                        for (int j = 0; j < splineB.Count; j++)
+                        var splineA = containerA.Spline;
+                        var splineB = containerB.Spline;
+
+                        // Iterate through the inner points of splineA
+                        for (int i = 1; i < splineA.Count - 1; i++)
                         {
-                            var pointB = splineB[j].Position;
+                            var pointA = splineA[i].Position;
 
-                            // Check if positions match
-                            if (pointA.Equals(pointB))
+                            // Compare with all points of splineB
+                            for (int j = 0; j < splineB.Count; j++)
                             {
-                                // Split splineA at the matching point
-                                var knotIndexA = containerA.FindClosestKnotIndex(pointA);
-                                if (knotIndexA.HasValue)
-                                {
-                                    SplineUtility.SplitSplineOnKnot(containerA, knotIndexA.Value);
-                                }
+                                var pointB = splineB[j].Position;
 
-                                // Split splineB at the matching point
-                                var knotIndexB = containerB.FindClosestKnotIndex(pointB);
-                                if (knotIndexB.HasValue)
+                                // Check if positions match
+                                if (pointA.Equals(pointB))
                                 {
-                                    SplineUtility.SplitSplineOnKnot(containerB, knotIndexB.Value);
+                                    // Split splineA at the matching point
+                                    var knotIndexA = containerA.FindClosestKnotIndex(pointA);
+                                    if (knotIndexA.HasValue)
+                                    {
+                                        SplineUtility.SplitSplineOnKnot(containerA, knotIndexA.Value);
+                                    }
+
+                                    // Split splineB at the matching point
+                                    var knotIndexB = containerB.FindClosestKnotIndex(pointB);
+                                    if (knotIndexB.HasValue)
+                                    {
+                                        SplineUtility.SplitSplineOnKnot(containerB, knotIndexB.Value);
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-            // Split and move resulting splines to new GameObjects
-            foreach (var container in splineContainers)
-                if (container.Splines.Count > 1)
-                {
-                    var parent = container.transform.parent;
-                    for (int i = 0; i < container.Splines.Count; i++)
+                canSplit = false;
+
+                // Split and move resulting splines to new GameObjects
+                foreach (var container in splineContainers)
+                    if (container.Splines.Count > 1)
                     {
-                        var newGameObject = new GameObject(container.gameObject.name);
-                        newGameObject.transform.SetParent(parent, worldPositionStays: false);
-                        var newSplineContainer = newGameObject.AddComponent<SplineContainer>();
-                        newSplineContainer.Spline = container.Splines[i];
+                        var parent = container.transform.parent;
+                        for (int i = 0; i < container.Splines.Count; i++)
+                        {
+                            var newGameObject = new GameObject(container.gameObject.name);
+                            newGameObject.transform.SetParent(parent, worldPositionStays: false);
+                            var newSplineContainer = newGameObject.AddComponent<SplineContainer>();
+                            newSplineContainer.Spline = container.Splines[i];
+                        }
+                        canSplit = true;
+                        GameObject.DestroyImmediate(container.gameObject);
                     }
+            } while (canSplit);
 
-                    GameObject.DestroyImmediate(container.gameObject);
-                }
+            var timePassed = System.DateTime.Now - startTime;
+            Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Create Intersections", priority = 3)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Create Intersections", priority = 4)]
         internal static void CreateIntersections()
         {
+            Debug.Log("Create Intersections...");
+
+            var startTime = System.DateTime.Now;
+
             var splineContainers = Selection.gameObjects
                 .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
                 .Where(splineContainer => splineContainer != null)
@@ -150,11 +213,18 @@ namespace Cuku.MicroWorld
                     intersectionObject.transform.SetParent(intersectionsParent);
                 }
             }
+
+            var timePassed = System.DateTime.Now - startTime;
+            Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Connect Continuous", priority = 4)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Connect Continuous", priority = 5)]
         internal static void ConnectContinuous()
         {
+            Debug.Log("Connect Continuous...");
+
+            var startTime = System.DateTime.Now;
+
             var splineContainers = Selection.gameObjects
                 .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
                 .Where(splineContainer => splineContainer != null)
@@ -166,7 +236,14 @@ namespace Cuku.MicroWorld
                 return;
             }
 
-            int mergeCount = 0;
+            // Get intersection positions
+            var intersectionPositions = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None)
+                .Where(intersection => intersection.name.Contains("Intersection "))
+                .Select(intersection => intersection.transform.position)
+                .ToArray()
+                .ToFloat3();
+
+            int count = 0;
             bool merged;
             do
             {
@@ -177,27 +254,35 @@ namespace Cuku.MicroWorld
                     for (int j = i + 1; j < splineContainers.Count; j++)
                     {
                         var targetSpline = splineContainers[j];
-                        if (baseSpline.Connect(targetSpline))
+                        if (baseSpline.Connect(targetSpline, intersectionPositions))
                         {
                             Object.DestroyImmediate(targetSpline.gameObject);
                             splineContainers.RemoveAt(j);
                             j--; // Adjust index after removal
-                            mergeCount++;
+                            count++;
                             merged = true;
                         }
                     }
                 }
             } while (merged);
 
-            Debug.Log($"Merged {mergeCount} splines.");
+            var timePassed = System.DateTime.Now - startTime;
+            Debug.Log($"Connected {count} splines in ({$"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}"})");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Smooth", priority = 5)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Smooth", priority = 6)]
         internal static void Smooth()
         {
+            Debug.Log("Smooth Splines...");
+
+            var startTime = System.DateTime.Now;
+
             foreach (var splineContainer in Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
                     .Where(splineContainer => splineContainer != null))
                 splineContainer.SetTangentMode(TangentMode.AutoSmooth);
+
+            var timePassed = System.DateTime.Now - startTime;
+            Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
     }
 }

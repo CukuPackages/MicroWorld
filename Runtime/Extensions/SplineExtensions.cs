@@ -50,7 +50,7 @@ namespace Cuku.MicroWorld
                     signedArea += (next.x - current.x) * (next.z + current.z);
                 }
 
-                // If signed points is negative, points are in clockwise order
+                // If signed vectorPoints is negative, vectorPoints are in clockwise order
                 if (signedArea < 0 && clockwise)
                     return;
 
@@ -120,6 +120,17 @@ namespace Cuku.MicroWorld
             return points;
         }
 
+        public static float3[] ToFloat3(this Vector3[] vectorPoints)
+        {
+            var floatPoints = new float3[vectorPoints.Length];
+            for (int i = 0; i < vectorPoints.Length; i++)
+            {
+                var vectorPoint = vectorPoints[i];
+                floatPoints[i] = new float3(vectorPoint.x, vectorPoint.y, vectorPoint.z);
+            }
+            return floatPoints;
+        }
+
         public static float3 Center(this SplineContainer splineContainer)
         {
             var points = splineContainer.Points();
@@ -169,48 +180,63 @@ namespace Cuku.MicroWorld
             return lowest;
         }
 
-        public static bool Connect(this SplineContainer baseSplineContainer, SplineContainer targetSplineContainer)
+        public static bool Connect(this SplineContainer baseSplineContainer, SplineContainer targetSplineContainer, float3[] skipPoints)
         {
             var baseSpline = baseSplineContainer.Spline;
             var targetSpline = targetSplineContainer.Spline;
 
-            var baseFirst = baseSpline[0].Position;
-            var baseLast = baseSpline[baseSpline.Count - 1].Position;
+            float3 baseFirst = baseSpline[0].Position;
+            float3 baseLast = baseSpline[baseSpline.Count - 1].Position;
 
-            var targetFirst = targetSpline[0].Position;
-            var targetLast = targetSpline[targetSpline.Count - 1].Position;
+            float3 targetFirst = targetSpline[0].Position;
+            float3 targetLast = targetSpline[targetSpline.Count - 1].Position;
+
+            bool Skip(float3 point)
+            {
+                for (var i = 0; i < skipPoints.Length; i++)
+                    if (math.distance(skipPoints[i], point) < math.EPSILON)
+                        return true;
+                return false;
+            }
 
             // Case 1: base last connects to target first
-            if (Vector3.Distance(new Vector3(baseLast.x, 0, baseLast.z), new Vector3(targetFirst.x, 0, targetFirst.z)) < Mathf.Epsilon)
+            if (!Skip(baseLast) && !Skip(targetFirst) && 
+                math.distance(baseLast, targetFirst) < math.EPSILON)
             {
-                Vector3 connectionPoint = (baseLast + targetFirst) / 2;
+                float3 connectionPoint = (baseLast + targetFirst) / 2;
                 baseSpline[baseSpline.Count - 1] = new BezierKnot(connectionPoint);
                 foreach (var knot in targetSpline.Skip(1))
                     baseSpline.Add(knot);
                 return true;
             }
+
             // Case 2: base first connects to target last
-            else if (Vector3.Distance(new Vector3(baseFirst.x, 0, baseFirst.z), new Vector3(targetLast.x, 0, targetLast.z)) < Mathf.Epsilon)
+            if (!Skip(baseFirst) && !Skip(targetLast) && 
+                math.distance(baseFirst, targetLast) < math.EPSILON)
             {
-                Vector3 connectionPoint = (baseFirst + targetLast) / 2;
+                float3 connectionPoint = (baseFirst + targetLast) / 2;
                 baseSpline[0] = new BezierKnot(connectionPoint);
                 for (int i = targetSpline.Count - 2; i >= 0; i--)
                     baseSpline.Insert(0, targetSpline[i]);
                 return true;
             }
+
             // Case 3: base last connects to target last (reverse target spline)
-            else if (Vector3.Distance(new Vector3(baseLast.x, 0, baseLast.z), new Vector3(targetLast.x, 0, targetLast.z)) < Mathf.Epsilon)
+            if (!Skip(baseLast) && !Skip(targetLast) && 
+                math.distance(baseLast, targetLast) < math.EPSILON)
             {
-                Vector3 connectionPoint = (baseLast + targetLast) / 2;
+                float3 connectionPoint = (baseLast + targetLast) / 2;
                 baseSpline[baseSpline.Count - 1] = new BezierKnot(connectionPoint);
                 for (int i = targetSpline.Count - 2; i >= 0; i--)
                     baseSpline.Add(targetSpline[i]);
                 return true;
             }
+
             // Case 4: base first connects to target first (reverse target spline)
-            else if (Vector3.Distance(new Vector3(baseFirst.x, 0, baseFirst.z), new Vector3(targetFirst.x, 0, targetFirst.z)) < Mathf.Epsilon)
+            if (!Skip(baseFirst) && !Skip(targetFirst) && 
+                math.distance(baseFirst, targetFirst) < math.EPSILON)
             {
-                Vector3 connectionPoint = (baseFirst + targetFirst) / 2;
+                float3 connectionPoint = (baseFirst + targetFirst) / 2;
                 baseSpline[0] = new BezierKnot(connectionPoint);
                 for (int i = 1; i < targetSpline.Count; i++)
                     baseSpline.Insert(0, targetSpline[i]);
@@ -233,7 +259,7 @@ namespace Cuku.MicroWorld
         {
             var points = knots.ToArray();
             if (points.Length < 3)
-                return new List<BezierKnot>(points); // Not enough points to simplify
+                return new List<BezierKnot>(points); // Not enough vectorPoints to simplify
 
             List<BezierKnot> cleanedKnots = new List<BezierKnot>();
 
@@ -277,31 +303,5 @@ namespace Cuku.MicroWorld
 
             return closestIndex;
         }
-
-        //public static bool SegmentsIntersect(Vector3 p1, Vector3 p2, Vector3 q1, Vector3 q2, out Vector3 intersection)
-        //{
-        //    intersection = Vector3.zero;
-
-        //    Vector3 r = p2 - p1;
-        //    Vector3 s = q2 - q1;
-
-        //    float rxs = Vector3.Cross(r, s).magnitude;
-        //    if (Mathf.Approximately(rxs, 0))
-        //    {
-        //        return false; // Parallel or collinear
-        //    }
-
-        //    Vector3 qp = q1 - p1;
-        //    float t = Vector3.Cross(qp, s).magnitude / rxs;
-        //    float u = Vector3.Cross(qp, r).magnitude / rxs;
-
-        //    if (t >= 0 && t <= 1 && u >= 0 && u <= 1)
-        //    {
-        //        intersection = p1 + t * r;
-        //        return true;
-        //    }
-
-        //    return false;
-        //}
     }
 }
