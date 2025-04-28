@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -8,6 +9,9 @@ namespace Cuku.MicroWorld
 {
     public static class MicroWorldSpline
     {
+        const string IntersectionsParentLabel = "Intersections Parent";
+        const string IntersectionLabel = "Intersection ";
+
         [MenuItem(nameof(MicroWorld) + "/Spline/Center Pivot", priority = 1)]
         internal static void CenterPivot()
         {
@@ -21,7 +25,7 @@ namespace Cuku.MicroWorld
         {
             Debug.Log("Cropping Splines...");
 
-            var startTime = System.DateTime.Now;
+            var startTime = DateTime.Now;
 
             // Find the Cropper spline by name
             var cropperObject = GameObject.Find("Cropper");
@@ -52,22 +56,21 @@ namespace Cuku.MicroWorld
                 // Destroy the GameObject if the spline has no points left
                 if (!spline.Knots.Any())
                 {
-                    Object.DestroyImmediate(splineContainer.gameObject);
+                    UnityEngine.Object.DestroyImmediate(splineContainer.gameObject);
                     cropped++;
                 }
             }
 
-            var timePassed = System.DateTime.Now - startTime;
+            var timePassed = DateTime.Now - startTime;
             Debug.Log($"Cropped {cropped} in {(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
-
 
         [MenuItem(nameof(MicroWorld) + "/Spline/Split Intersecting", priority = 3)]
         internal static void SplitIntersecting()
         {
             Debug.Log("Split Intersecting...");
 
-            var startTime = System.DateTime.Now;
+            var startTime = DateTime.Now;
 
             bool canSplit;
             do
@@ -75,9 +78,9 @@ namespace Cuku.MicroWorld
                 var splineContainers = Selection.gameObjects
                     .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
                     .Where(splineContainer => splineContainer != null)
-                    .ToList();
+                    .ToArray();
 
-                if (splineContainers.Count < 2)
+                if (splineContainers.Length < 2)
                 {
                     Debug.LogWarning("Please select at least two spline containers to detect intersections.");
                     return;
@@ -108,16 +111,12 @@ namespace Cuku.MicroWorld
                                     // Split splineA at the matching point
                                     var knotIndexA = containerA.FindClosestKnotIndex(pointA);
                                     if (knotIndexA.HasValue)
-                                    {
                                         SplineUtility.SplitSplineOnKnot(containerA, knotIndexA.Value);
-                                    }
 
                                     // Split splineB at the matching point
                                     var knotIndexB = containerB.FindClosestKnotIndex(pointB);
                                     if (knotIndexB.HasValue)
-                                    {
                                         SplineUtility.SplitSplineOnKnot(containerB, knotIndexB.Value);
-                                    }
                                 }
                             }
                         }
@@ -142,7 +141,7 @@ namespace Cuku.MicroWorld
                     }
             } while (canSplit);
 
-            var timePassed = System.DateTime.Now - startTime;
+            var timePassed = DateTime.Now - startTime;
             Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
 
@@ -151,14 +150,14 @@ namespace Cuku.MicroWorld
         {
             Debug.Log("Create Intersections...");
 
-            var startTime = System.DateTime.Now;
+            var startTime = DateTime.Now;
 
             var splineContainers = Selection.gameObjects
                 .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
                 .Where(splineContainer => splineContainer != null)
-                .ToList();
+                .ToArray();
 
-            if (splineContainers.Count < 2)
+            if (splineContainers.Length < 2)
             {
                 Debug.LogWarning("Please select at least two spline containers to detect intersections.");
                 return;
@@ -166,7 +165,7 @@ namespace Cuku.MicroWorld
 
             var intersectionDictionary = new Dictionary<Vector3, HashSet<int>>();
 
-            for (int i = 0; i < splineContainers.Count; i++)
+            for (int i = 0; i < splineContainers.Length; i++)
             {
                 var splineA = splineContainers[i];
                 var pointsA = new[]
@@ -175,7 +174,7 @@ namespace Cuku.MicroWorld
                     splineA.Spline[splineA.Spline.Count - 1].Position
                 };
 
-                for (int j = i + 1; j < splineContainers.Count; j++)
+                for (int j = i + 1; j < splineContainers.Length; j++)
                 {
                     var splineB = splineContainers[j];
                     var pointsB = new[]
@@ -185,36 +184,30 @@ namespace Cuku.MicroWorld
                     };
 
                     foreach (var pointA in pointsA)
-                    {
                         foreach (var pointB in pointsB)
-                        {
                             if (Vector3.Distance(pointA, pointB) < Mathf.Epsilon)
                             {
                                 if (!intersectionDictionary.ContainsKey(pointA))
-                                {
                                     intersectionDictionary[pointA] = new HashSet<int>();
-                                }
                                 intersectionDictionary[pointA].Add(i);
                                 intersectionDictionary[pointA].Add(j);
                             }
-                        }
-                    }
                 }
             }
 
-            var intersectionsParent = new GameObject("Intersections").transform;
+            var intersectionsParent = new GameObject(IntersectionsParentLabel).transform;
             foreach (var intersection in intersectionDictionary)
             {
                 var count = intersection.Value.Count;
                 if (count >= 3)
                 {
-                    var intersectionObject = new GameObject($"Intersection {count}");
+                    var intersectionObject = new GameObject($"{IntersectionLabel}{count}");
                     intersectionObject.transform.position = intersection.Key;
                     intersectionObject.transform.SetParent(intersectionsParent);
                 }
             }
 
-            var timePassed = System.DateTime.Now - startTime;
+            var timePassed = DateTime.Now - startTime;
             Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
 
@@ -223,7 +216,7 @@ namespace Cuku.MicroWorld
         {
             Debug.Log("Connect Continuous...");
 
-            var startTime = System.DateTime.Now;
+            var startTime = DateTime.Now;
 
             var splineContainers = Selection.gameObjects
                 .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
@@ -236,10 +229,9 @@ namespace Cuku.MicroWorld
                 return;
             }
 
-            // Get intersection positions
-            var intersectionPositions = Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None)
-                .Where(intersection => intersection.name.Contains("Intersection "))
-                .Select(intersection => intersection.transform.position)
+            // Get intersections
+            var intersections = Intersections()
+                .Select(intersection => intersection.position)
                 .ToArray()
                 .ToFloat3();
 
@@ -254,9 +246,9 @@ namespace Cuku.MicroWorld
                     for (int j = i + 1; j < splineContainers.Count; j++)
                     {
                         var targetSpline = splineContainers[j];
-                        if (baseSpline.Connect(targetSpline, intersectionPositions))
+                        if (baseSpline.Connect(targetSpline, intersections))
                         {
-                            Object.DestroyImmediate(targetSpline.gameObject);
+                            UnityEngine.Object.DestroyImmediate(targetSpline.gameObject);
                             splineContainers.RemoveAt(j);
                             j--; // Adjust index after removal
                             count++;
@@ -266,7 +258,7 @@ namespace Cuku.MicroWorld
                 }
             } while (merged);
 
-            var timePassed = System.DateTime.Now - startTime;
+            var timePassed = DateTime.Now - startTime;
             Debug.Log($"Connected {count} splines in ({$"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}"})");
         }
 
@@ -275,14 +267,25 @@ namespace Cuku.MicroWorld
         {
             Debug.Log("Smooth Splines...");
 
-            var startTime = System.DateTime.Now;
+            var startTime = DateTime.Now;
 
             foreach (var splineContainer in Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
                     .Where(splineContainer => splineContainer != null))
                 splineContainer.SetTangentMode(TangentMode.AutoSmooth);
 
-            var timePassed = System.DateTime.Now - startTime;
+            var timePassed = DateTime.Now - startTime;
             Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
+
+        internal static Transform[] Intersections()
+        {
+            var parent = GameObject.Find(IntersectionsParentLabel).transform;
+            var intersections = new HashSet<Transform>(parent.GetComponentsInChildren<Transform>());
+            intersections.Remove(parent);
+            return intersections.ToArray();
+        }
+
+        internal static int Connections(this Transform intersection)
+            => Convert.ToInt32(intersection.name.Split(MicroWorldSpline.IntersectionLabel)[1]);
     }
 }
