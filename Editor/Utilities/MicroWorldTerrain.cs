@@ -9,6 +9,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using static Cuku.MicroWorld.MicroWorld;
 
 #if TERRALAND
 using TerraUnity.TerraLand;
@@ -123,12 +124,12 @@ namespace Cuku.MicroWorld
 
             // Construct new directory for terrain data asset
             string terrainDirectory = Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrains.First().terrainData));
-            string newTerrainDirectory = terrains.First().terrainData.MicroVerseTerrainDataPath();
+            string newTerrainDirectory = MicroVerseTerrainDataPath(terrains.First().terrainData);
             if (Directory.Exists(newTerrainDirectory))
                 Debug.Log("Terrain data is already extracted");
             else
             {
-                MicroWorld.DuplicateDirectory(terrainDirectory, newTerrainDirectory);
+                DuplicateDirectory(terrainDirectory, newTerrainDirectory);
 #if TERRALAND
                 ExtractTerrainTilesInfo();
 #else
@@ -190,7 +191,7 @@ namespace Cuku.MicroWorld
                     topLeft: new Coordinate(tile.TopLeftLatitude, tile.TopLeftLongitude),
                     bottomRight: new Coordinate(tile.BottomRightLatitude, tile.BottomRightLongitude));
             }
-            string newTerrainDirectory = tiles.First().GetComponent<Terrain>().terrainData.MicroVerseTerrainDataPath();
+            string newTerrainDirectory = MicroVerseTerrainDataPath(tiles.First().GetComponent<Terrain>().terrainData);
             if (!Directory.Exists(newTerrainDirectory))
                 Directory.CreateDirectory(newTerrainDirectory);
             string filePath = Path.Combine(newTerrainDirectory, nameof(Tile) + ".json");

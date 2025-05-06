@@ -4,23 +4,33 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Splines;
+using static Cuku.MicroWorld.MicroWorld;
 
 namespace Cuku.MicroWorld
 {
     public static class MicroWorldSpline
     {
-        const string IntersectionsParentLabel = "Intersections Parent";
-        const string IntersectionLabel = "Intersection ";
+        public const string CropperLabel = "Cropper";
+        public const string IntersectionsParentLabel = "Intersections Parent";
+        public const string IntersectionLabel = "Intersection ";
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Center Pivot", priority = 1)]
-        internal static void CenterPivot()
+        [MenuItem(nameof(MicroWorld) + "/Spline/Pivot at Center", priority = 1)]
+        internal static void PivotAtCenter()
         {
             foreach (var splineContainer in Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
                     .Where(splineContainer => splineContainer != null))
-                splineContainer.CenterPivot();
+                splineContainer.PivotAtCenter();
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Crop", priority = 2)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Pivot at Start", priority = 2)]
+        internal static void PivotAtStart()
+        {
+            foreach (var splineContainer in Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
+                    .Where(splineContainer => splineContainer != null))
+                splineContainer.PivotAtStart();
+        }
+
+        [MenuItem(nameof(MicroWorld) + "/Spline/Crop", priority = 3)]
         internal static void Crop()
         {
             Debug.Log("Cropping Splines...");
@@ -28,7 +38,7 @@ namespace Cuku.MicroWorld
             var startTime = DateTime.Now;
 
             // Find the Cropper spline by name
-            var cropperObject = GameObject.Find("Cropper");
+            var cropperObject = GameObject.Find(CropperLabel);
             if (cropperObject == null)
             {
                 Debug.LogError("Cropper object not found. Make sure there is a GameObject named 'Cropper' in the scene.");
@@ -65,7 +75,7 @@ namespace Cuku.MicroWorld
             Debug.Log($"Cropped {cropped} in {(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Split Intersecting", priority = 3)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Split Intersecting", priority = 4)]
         internal static void SplitIntersecting()
         {
             Debug.Log("Split Intersecting...");
@@ -77,12 +87,12 @@ namespace Cuku.MicroWorld
             {
                 var splineContainers = Selection.gameObjects
                     .SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
-                    .Where(splineContainer => splineContainer != null)
+                    .Where(go => go != null)
                     .ToArray();
 
                 if (splineContainers.Length < 2)
                 {
-                    Debug.LogWarning("Please select at least two spline containers to detect intersections.");
+                    Debug.LogWarning("Select at least two spline containers to detect intersections!");
                     return;
                 }
 
@@ -145,7 +155,7 @@ namespace Cuku.MicroWorld
             Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Create Intersections", priority = 4)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Create Intersections", priority = 5)]
         internal static void CreateIntersections()
         {
             Debug.Log("Create Intersections...");
@@ -211,7 +221,7 @@ namespace Cuku.MicroWorld
             Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Connect Continuous", priority = 5)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Connect Continuous", priority = 6)]
         internal static void ConnectContinuous()
         {
             Debug.Log("Connect Continuous...");
@@ -230,7 +240,7 @@ namespace Cuku.MicroWorld
             }
 
             // Get intersections
-            var intersections = Intersections()
+            var intersections = Children(IntersectionsParentLabel)
                 .Select(intersection => intersection.position)
                 .ToArray()
                 .ToFloat3();
@@ -262,7 +272,7 @@ namespace Cuku.MicroWorld
             Debug.Log($"Connected {count} splines in ({$"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}"})");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Smooth", priority = 6)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Smooth", priority = 7)]
         internal static void Smooth()
         {
             Debug.Log("Smooth Splines...");
@@ -276,16 +286,5 @@ namespace Cuku.MicroWorld
             var timePassed = DateTime.Now - startTime;
             Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
-
-        internal static Transform[] Intersections()
-        {
-            var parent = GameObject.Find(IntersectionsParentLabel).transform;
-            var intersections = new HashSet<Transform>(parent.GetComponentsInChildren<Transform>());
-            intersections.Remove(parent);
-            return intersections.ToArray();
-        }
-
-        internal static int Connections(this Transform intersection)
-            => Convert.ToInt32(intersection.name.Split(MicroWorldSpline.IntersectionLabel)[1]);
     }
 }

@@ -18,7 +18,7 @@ namespace Cuku.MicroWorld
         public virtual void Spawn()
         {
             var area = new GameObject(Content.name);
-            area.transform.SetParent(GameObject.FindObjectOfType<MicroVerse>(true).transform, true);
+            area.transform.SetParent(MicroVerse.instance.transform, true);
 
             var biomeSpline = area.AddComponent<SplineContainer>();
             var splines = new List<Spline>();
@@ -40,7 +40,7 @@ namespace Cuku.MicroWorld
 
         public bool IsValid()
         {
-            if (GameObject.FindObjectOfType<MicroVerse>(true) == null)
+            if (MicroVerse.instance == null)
             {
                 Debug.LogError($"Can't find {nameof(MicroVerse)}!");
                 return false;
@@ -57,7 +57,7 @@ namespace Cuku.MicroWorld
         {
             filter.filterType = FalloffFilter.FilterType.SplineArea;
             filter.splineArea = ContentArea;
-            GameObject.FindObjectOfType<MicroVerse>(true).Invalidate();
+            MicroVerse.instance.Invalidate();
         }
     }
 }

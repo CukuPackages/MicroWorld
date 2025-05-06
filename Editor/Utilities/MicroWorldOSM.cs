@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.Splines;
 using Unity.Mathematics;
+using static Cuku.MicroWorld.MicroWorld;
 
 namespace Cuku.MicroWorld
 {
@@ -65,7 +66,7 @@ namespace Cuku.MicroWorld
 
             var elementsParent = new GameObject(Path.GetFileNameWithoutExtension(AssetDatabase.GetAssetPath(dataAsset))).transform;
             var tiles = JsonConvert.DeserializeObject<Tile[]>(File.ReadAllText(
-                Path.Combine(GameObject.FindFirstObjectByType<Terrain>(FindObjectsInactive.Include).terrainData.MicroVerseTerrainDataPath(), nameof(Tile) + ".json")));
+                Path.Combine(MicroVerseTerrainDataPath(GameObject.FindFirstObjectByType<Terrain>(FindObjectsInactive.Include).terrainData), nameof(Tile) + ".json")));
             foreach (var element in elements.ToWorldPoints(ref tiles))
             {
                 var splineContainer = (PrefabUtility.InstantiatePrefab(prefab, parent: elementsParent) as GameObject)

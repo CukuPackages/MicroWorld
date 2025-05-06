@@ -1,5 +1,8 @@
+#if UNITY_EDITOR
 using JBooth.MicroVerseCore;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -7,10 +10,10 @@ namespace Cuku.MicroWorld
 {
     public static class MicroWorld
     {
-        internal static string MicroVerseTerrainDataPath(this TerrainData terrainData)
+        public static string MicroVerseTerrainDataPath(TerrainData terrainData)
              => Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(AssetDatabase.GetAssetPath(terrainData))), nameof(MicroVerse));
 
-        internal static void DuplicateDirectory(string sourceDirPath, string destinationDirPath)
+        public static void DuplicateDirectory(string sourceDirPath, string destinationDirPath)
         {
             if (!Directory.Exists(destinationDirPath))
                 Directory.CreateDirectory(destinationDirPath);
@@ -37,5 +40,14 @@ namespace Cuku.MicroWorld
                 DuplicateDirectory(subDirectory, destinationSubDirPath);
             }
         }
+
+        public static Transform[] Children(string parentName)
+        {
+            var parent = GameObject.Find(parentName).transform;
+            var intersections = new HashSet<Transform>(parent.GetComponentsInChildren<Transform>());
+            intersections.Remove(parent);
+            return intersections.ToArray();
+        }
     }
 }
+#endif

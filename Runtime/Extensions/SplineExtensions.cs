@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using UnityEngine.Splines;
 using System;
 using Freya;
+using System.ComponentModel;
 
 namespace Cuku.MicroWorld
 {
@@ -140,16 +141,47 @@ namespace Cuku.MicroWorld
             return sum / points.Count;
         }
 
-        public static void CenterPivot(this SplineContainer splineContainer)
+        public static void PivotAtCenter(this SplineContainer container)
         {
-            var shift = (float3)splineContainer.transform.position;
-            splineContainer.transform.position = Vector3.zero;
-            var knots = splineContainer.Spline.Knots.ToArray();
-            for (int i = 0; i < knots.Length; i++)
+            Vector3 sum = Vector3.zero;
+            int totalPoints = 0;
+            for (int i = 0; i < container.Splines.Count; i++)
+                foreach (var point in container.Splines[i])
+                {
+                    sum += container.transform.TransformPoint(point.Position);
+                    totalPoints++;
+                }
+
+            MovePivot(container, (totalPoints > 0 ? sum / totalPoints : Vector3.zero));
+        }
+
+        public static void PivotAtStart(this SplineContainer container)
+            => MovePivot(container, container.transform.TransformPoint(container.Splines[0].Knots.First().Position));
+
+        public static void MovePivot(this SplineContainer container, Vector3 position)
+        {
+            var shift = position - container.transform.position;
+            container.transform.position = shift;
+            ShiftKnots(ref container, -shift);
+        }
+
+        public static void Scale(this SplineContainer splineContainer, float factor)
+        {
+            for (int i = 0; i < splineContainer.Splines.Count; i++)
             {
-                var knot = knots[i];
-                knot.Position += shift;
-                splineContainer.Spline.SetKnot(i, knot);
+                var spline = splineContainer[i];
+                var knotCount = spline.Count;
+
+                for (int j = 0; j < knotCount; j++)
+                {
+                    var knot = spline[j];
+
+                    knot.Position *= factor;
+                    knot.TangentIn *= factor;
+                    knot.TangentOut *= factor;
+
+                    spline[j] = knot;
+                }
             }
         }
 
@@ -200,7 +232,7 @@ namespace Cuku.MicroWorld
             }
 
             // Case 1: base last connects to target first
-            if (!Skip(baseLast) && !Skip(targetFirst) && 
+            if (!Skip(baseLast) && !Skip(targetFirst) &&
                 math.distance(baseLast, targetFirst) < math.EPSILON)
             {
                 float3 connectionPoint = (baseLast + targetFirst) / 2;
@@ -211,7 +243,7 @@ namespace Cuku.MicroWorld
             }
 
             // Case 2: base first connects to target last
-            if (!Skip(baseFirst) && !Skip(targetLast) && 
+            if (!Skip(baseFirst) && !Skip(targetLast) &&
                 math.distance(baseFirst, targetLast) < math.EPSILON)
             {
                 float3 connectionPoint = (baseFirst + targetLast) / 2;
@@ -222,7 +254,7 @@ namespace Cuku.MicroWorld
             }
 
             // Case 3: base last connects to target last (reverse target spline)
-            if (!Skip(baseLast) && !Skip(targetLast) && 
+            if (!Skip(baseLast) && !Skip(targetLast) &&
                 math.distance(baseLast, targetLast) < math.EPSILON)
             {
                 float3 connectionPoint = (baseLast + targetLast) / 2;
@@ -233,7 +265,7 @@ namespace Cuku.MicroWorld
             }
 
             // Case 4: base first connects to target first (reverse target spline)
-            if (!Skip(baseFirst) && !Skip(targetFirst) && 
+            if (!Skip(baseFirst) && !Skip(targetFirst) &&
                 math.distance(baseFirst, targetFirst) < math.EPSILON)
             {
                 float3 connectionPoint = (baseFirst + targetFirst) / 2;
@@ -302,6 +334,41 @@ namespace Cuku.MicroWorld
             }
 
             return closestIndex;
+        }
+
+        public static SplineContainer CopySplineContainerFrom(this GameObject targetObject, GameObject sourceObject)
+        {
+            var source = sourceObject.GetComponent<SplineContainer>();
+
+            var target = targetObject.GetComponent<SplineContainer>();
+            if (target == null)
+                target = targetObject.AddComponent<SplineContainer>();
+
+            while (target.Splines.Count > 0)
+                target.RemoveSplineAt(0);
+
+            for (int i = 0; i < source.Splines.Count; i++)
+            {
+                var sourceSpline = source.Splines[i];
+                var newSpline = new Spline();
+
+                foreach (var knot in sourceSpline)
+                {
+                    var newKnot = new BezierKnot
+                    {
+                        Position = knot.Position,
+                        TangentIn = knot.TangentIn,
+                        TangentOut = knot.TangentOut,
+                        Rotation = knot.Rotation
+                    };
+                    newSpline.Add(newKnot);
+                }
+
+                newSpline.Closed = sourceSpline.Closed;
+                target.AddSpline(newSpline);
+            }
+
+            return target;
         }
     }
 }
