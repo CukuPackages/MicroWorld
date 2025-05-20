@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using UnityEngine.Splines;
 using System;
 using Freya;
-using System.ComponentModel;
 
 namespace Cuku.MicroWorld
 {
@@ -88,20 +87,11 @@ namespace Cuku.MicroWorld
 
         public static void AdaptVolumeToSpline(this SplineContainer splineContainer, Transform target)
         {
-            // Calculate the dimensions of the bounding box
-            var min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
-            var max = new float3(float.MinValue, float.MinValue, float.MinValue);
-            var points = splineContainer.Points();
-            for (int i = 0; i < points.Count; i++)
-            {
-                var point = points[i];
-                min = math.min(min, point);
-                max = math.max(max, point);
-            }
-            var dimensions = max - min;
-            target.position = (Vector3)splineContainer.Center();
-            target.localScale = new Vector3(dimensions.x, target.localScale.y, dimensions.z);
+            var minMax = splineContainer.MinMax();
+            var dimensions = minMax.max - minMax.min;
+            target.localScale = new Vector3(dimensions.x, dimensions.y, dimensions.z);
         }
+
 
         public static List<float3> Points(this SplineContainer splineContainer)
         {
@@ -132,28 +122,29 @@ namespace Cuku.MicroWorld
             return floatPoints;
         }
 
+        public static (float3 min, float3 max) MinMax(this SplineContainer splineContainer)
+        {
+            var min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
+            var max = new float3(float.MinValue, float.MinValue, float.MinValue);
+            var points = splineContainer.Points();
+            for (int i = 0; i < points.Count; i++)
+            {
+                var point = points[i];
+                min = math.min(min, point);
+                max = math.max(max, point);
+            }
+
+            return (min, max);
+        }
+
         public static float3 Center(this SplineContainer splineContainer)
         {
-            var points = splineContainer.Points();
-            var sum = float3.zero;
-            foreach (float3 point in points)
-                sum += point;
-            return sum / points.Count;
+            var minMax = splineContainer.MinMax();
+            return (minMax.min + minMax.max) * 0.5f;
         }
 
-        public static void PivotAtCenter(this SplineContainer container)
-        {
-            Vector3 sum = Vector3.zero;
-            int totalPoints = 0;
-            for (int i = 0; i < container.Splines.Count; i++)
-                foreach (var point in container.Splines[i])
-                {
-                    sum += container.transform.TransformPoint(point.Position);
-                    totalPoints++;
-                }
-
-            MovePivot(container, (totalPoints > 0 ? sum / totalPoints : Vector3.zero));
-        }
+        public static void PivotAtCenter(this SplineContainer splineContainer)
+            =>  MovePivot(splineContainer, splineContainer.Center());
 
         public static void PivotAtStart(this SplineContainer container)
             => MovePivot(container, container.transform.TransformPoint(container.Splines[0].Knots.First().Position));
@@ -161,7 +152,7 @@ namespace Cuku.MicroWorld
         public static void MovePivot(this SplineContainer container, Vector3 position)
         {
             var shift = position - container.transform.position;
-            container.transform.position = shift;
+            container.transform.position = position;
             ShiftKnots(ref container, -shift);
         }
 
