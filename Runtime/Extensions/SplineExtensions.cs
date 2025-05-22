@@ -152,8 +152,10 @@ namespace Cuku.MicroWorld
         public static void MovePivot(this SplineContainer container, Vector3 position)
         {
             var shift = position - container.transform.position;
-            container.transform.position = position;
             ShiftKnots(ref container, -shift);
+            container.transform.position = position;
+            UnityEditor.Undo.RecordObject(container, "Move Spline Pivot");
+            UnityEditor.EditorUtility.SetDirty(container);
         }
 
         public static void Scale(this SplineContainer splineContainer, float factor)
@@ -269,9 +271,9 @@ namespace Cuku.MicroWorld
             return false;
         }
 
-        public static BezierKnot[] ToKnots(this float3[] points, bool closed = false)
+        public static BezierKnot[] ToKnots(this List<float3> points, bool closed = false)
         {
-            var length = points.Length - Convert.ToInt32(closed);
+            var length = points.Count - Convert.ToInt32(closed);
             var knots = new BezierKnot[length];
             for (int i = 0; i < length; i++)
                 knots[i] = new BezierKnot(points[i]);

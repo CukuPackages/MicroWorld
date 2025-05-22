@@ -221,7 +221,54 @@ namespace Cuku.MicroWorld
             Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Connect Continuous", priority = 6)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Connect", priority = 6)]
+        internal static void Connect()
+        {
+            GameObject[] selected = Selection.gameObjects;
+
+            if (selected.Length < 2)
+            {
+                Debug.LogError("Select at least two GameObjects with SplineContainer components.");
+                return;
+            }
+
+            SplineContainer targetContainer = selected[0].GetComponent<SplineContainer>();
+            if (targetContainer == null)
+            {
+                Debug.LogError("The first selected GameObject must have a SplineContainer component.");
+                return;
+            }
+
+            Spline targetSpline = targetContainer.Spline;
+            Undo.RegisterCompleteObjectUndo(targetContainer, "Connect Splines");
+
+            int totalAdded = 0;
+
+            for (int i = 1; i < selected.Length; i++)
+            {
+                SplineContainer sourceContainer = selected[i].GetComponent<SplineContainer>();
+                if (sourceContainer == null) continue;
+
+                Spline sourceSpline = sourceContainer.Spline;
+
+                for (int j = 0; j < sourceSpline.Count; j++)
+                {
+                    BezierKnot knot = sourceSpline[j];
+                    targetSpline.Add(knot);
+                    totalAdded++;
+                }
+            }
+
+            for (int i = 1; i < selected.Length; i++)
+            {
+                UnityEngine.Object.DestroyImmediate(selected[i]);
+            }
+
+            EditorUtility.SetDirty(targetContainer);
+            Debug.Log($"Connected splines. {totalAdded} knots added to {selected[0].name}.");
+        }
+
+        [MenuItem(nameof(MicroWorld) + "/Spline/Connect Continuous", priority = 7)]
         internal static void ConnectContinuous()
         {
             Debug.Log("Connect Continuous...");
@@ -272,7 +319,7 @@ namespace Cuku.MicroWorld
             Debug.Log($"Connected {count} splines in ({$"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}"})");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Smooth", priority = 7)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Smooth", priority = 8)]
         internal static void Smooth()
         {
             Debug.Log("Smooth Splines...");

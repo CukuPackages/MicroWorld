@@ -20,7 +20,6 @@ namespace Cuku.MicroWorld
 
             var treeStamp = ContentInstance.GetComponent<TreeStamp>();
             treeStamp.density = Density;
-            SetFilter(treeStamp.filterSet.falloffFilter);
         }
     }
 }

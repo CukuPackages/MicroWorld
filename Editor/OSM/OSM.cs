@@ -18,8 +18,8 @@ namespace Cuku.MicroWorld
             using (var fileStream = File.OpenRead(source.Data))
             {
                 var box = source.ToBoundingBox();
-                var stream = new PBFOsmStreamSource(fileStream).FilterBox(box.x, box.y, box.z, box.w);
-                // Extract elemenst
+                var stream = new PBFOsmStreamSource(fileStream).FilterBox(box.x, box.y, box.z, box.w, true);
+                // Extract elements
                 var osmGeos = (from osmGeo in stream
                                from element in elements
                                where osmGeo.Type == OsmGeoType.Node ||
@@ -79,22 +79,29 @@ namespace Cuku.MicroWorld
                 (float)centerLat - deltaLatDegrees);
         }
 
-        internal static float3[][] ToWorldPoints(this Coordinate[][] element, ref Tile[] tiles)
+        internal static List<List<float3>> ToWorldPoints(this Coordinate[][] element, ref Tile[] tiles)
         {
-            var worldElement = new float3[element.Length][];
+            var worldElement = new List<List<float3>>(element.Length);
             for (int i = 0; i < element.Length; i++)
             {
                 var points = element[i];
-                worldElement[i] = new float3[points.Length];
+                var pointList = new List<float3>();
                 for (int j = 0; j < points.Length; j++)
-                    worldElement[i][j] = points[j].ToTerrainPosition(ref tiles);
+                {
+                    (bool found, float3 position) = points[j].ToTerrainPosition(ref tiles);
+                    if (found)
+                        pointList.Add(position);
+                }
+                worldElement.Add(pointList);
             }
             return worldElement;
         }
 
-        internal static float3 ToTerrainPosition(this Coordinate coordinate, ref Tile[] tiles)
+        internal static (bool found, float3 position) ToTerrainPosition(this Coordinate coordinate, ref Tile[] tiles)
         {
-            (Tile tile, Terrain terrain) = coordinate.FindTileTerrainPair(ref tiles);
+            (bool found, Tile tile, Terrain terrain) = coordinate.FindTileTerrainPair(ref tiles);
+            if (!found)
+                return (false, float3.zero);
             var minLat = tile.BottomRight.Lat;
             var maxLat = tile.TopLeft.Lat;
             var minLon = tile.TopLeft.Lon;
@@ -109,10 +116,10 @@ namespace Cuku.MicroWorld
             var posZ = relativeZ * terrainSize.z + terrainPosition.z;
             // Y-position based on actual terrain height
             double posY = terrain.SampleHeight(new Vector3((float)posX, 0, (float)posZ)) + terrainPosition.y;
-            return new float3((float)posX, (float)posY, (float)posZ);
+            return (true, new float3((float)posX, (float)posY, (float)posZ));
         }
 
-        internal static (Tile tile, Terrain terrain) FindTileTerrainPair(this Coordinate coordinate, ref Tile[] tiles)
+        internal static (bool found, Tile tile, Terrain terrain) FindTileTerrainPair(this Coordinate coordinate, ref Tile[] tiles)
         {
             foreach (var tile in tiles)
             {
@@ -120,7 +127,7 @@ namespace Cuku.MicroWorld
                     coordinate.Lat >= tile.BottomRight.Lat &&
                     coordinate.Lon >= tile.TopLeft.Lon &&
                     coordinate.Lon <= tile.BottomRight.Lon)
-                    return (tile,
+                    return (true, tile,
                         GameObject.FindObjectsByType<Terrain>(FindObjectsInactive.Include, FindObjectsSortMode.None)
                         .FirstOrDefault(terrain => terrain.name.Contains(tile.Name)));
             }

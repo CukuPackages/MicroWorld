@@ -1,6 +1,5 @@
 #if UNITY_EDITOR
 using JBooth.MicroVerseCore;
-using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
@@ -21,7 +20,7 @@ namespace Cuku.MicroWorld
         [ContextMenu(nameof(Spawn))]
         public virtual void Spawn()
         {
-            var area = new GameObject(Content.name);
+            var area = new GameObject(Content.name + " Area");
             area.transform.position = transform.position;
 
             area.transform.SetParent(string.IsNullOrEmpty(ContentParent) ?
@@ -29,36 +28,21 @@ namespace Cuku.MicroWorld
                 MicroVerse.instance.transform.Find(ContentParent)
                 , true);
 
-            var areaSpline = area.AddComponent<SplineContainer>();
-            var splines = new List<Spline>();
-            foreach (var spline in GetComponent<SplineContainer>().Splines)
-                splines.Add(new Spline(spline));
-            areaSpline.Splines = splines;
-
-            SplineExtensions.ShiftKnots(ref areaSpline, transform.position);
-
-            ContentArea = area.AddComponent<SplineArea>();
-            ContentArea.spline = areaSpline;
+            ContentArea.spline = area.CopySplineContainerFrom(gameObject);
 
             ContentInstance = PrefabUtility.InstantiatePrefab(Content, area.transform) as GameObject;
             ContentInstance.gameObject.name = Content.name;
-            ContentInstance.transform.position = transform.position;
 
             ContentArea.spline.AdaptVolumeToSpline(ContentInstance.transform);
-            var position = ContentInstance.transform.position;
-            position.x *= ContentVolumeScale.x;
-            position.y *= ContentVolumeScale.y;
-            position.z *= ContentVolumeScale.z;
-            ContentInstance.transform.position = position;
             var scale = ContentInstance.transform.localScale;
             scale.x *= ContentVolumeScale.x;
             scale.y *= ContentVolumeScale.y;
             scale.z *= ContentVolumeScale.z;
-            ContentInstance.transform.localScale = scale;
-            //UnityEditor.EditorUtility.SetDirty(ContentInstance);
-            //var stamp = ContentInstance.GetComponent<HeightStamp>();
-            //if (stamp) MicroVerse.instance?.Invalidate(stamp.GetBounds());
-            //MicroVerse.instance?.Invalidate();
+
+            foreach (var stamp in area.GetComponentsInChildren<HeightStamp>())
+                SetFilter(stamp.GetFilterSet().falloffFilter);
+            foreach (var stamp in area.GetComponentsInChildren<TreeStamp>())
+                SetFilter(stamp.filterSet.falloffFilter);
         }
 
         public bool IsValid()
@@ -76,7 +60,7 @@ namespace Cuku.MicroWorld
             return true;
         }
 
-        public void SetFilter(FalloffFilter filter)
+        void SetFilter(FalloffFilter filter)
         {
             filter.filterType = FalloffFilter.FilterType.SplineArea;
             filter.splineArea = ContentArea;
