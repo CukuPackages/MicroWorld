@@ -28,6 +28,7 @@ namespace Cuku.MicroWorld
                 MicroVerse.instance.transform.Find(ContentParent)
                 , true);
 
+            ContentArea = area.AddComponent<SplineArea>();
             ContentArea.spline = area.CopySplineContainerFrom(gameObject);
 
             ContentInstance = PrefabUtility.InstantiatePrefab(Content, area.transform) as GameObject;

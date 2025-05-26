@@ -10,6 +10,7 @@ namespace Cuku.MicroWorld
     {
         [SerializeField] public GameObject WaterArea;
         [SerializeField] public string Parent;
+        [SerializeField] public bool SnapToTerrain;
 
         [ContextMenu(nameof(Spawn))]
         public void Spawn()
@@ -21,7 +22,7 @@ namespace Cuku.MicroWorld
 
             var splineContainer = gameObject.GetComponent<SplineContainer>();
             var ram = instance.GetComponent<LakePolygon>();
-            ram.snapToTerrain = false;
+            ram.snapToTerrain = !SnapToTerrain;
             foreach (var spline in splineContainer.Splines)
                 foreach (var knots in spline.Knots)
                     ram.AddPoint(knots.Position);
