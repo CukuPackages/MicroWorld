@@ -30,7 +30,15 @@ namespace Cuku.MicroWorld
                 splineContainer.PivotAtStart();
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Crop", priority = 3)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Pivot at World Origin", priority = 3)]
+        internal static void PivotAtWorldOrigin()
+        {
+            foreach (var splineContainer in Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
+                    .Where(splineContainer => splineContainer != null))
+                splineContainer.PivotAtWorldOrigin();
+        }
+
+        [MenuItem(nameof(MicroWorld) + "/Spline/Crop", priority = 4)]
         internal static void Crop()
         {
             Debug.Log("Cropping Splines...");
@@ -58,24 +66,25 @@ namespace Cuku.MicroWorld
                          .Where(splineContainer => splineContainer != null))
             {
                 var spline = splineContainer.Splines[0];
-                var knots = spline.Knots.ToList(); // Copy to avoid modifying the collection during iteration
+                var knots = spline.Knots.ToList();
                 foreach (var knot in knots)
                     if (!cropper.Contains(knot.Position))
-                        spline.Remove(knot); // Remove the knot if it's outside
+                        spline.Remove(knot);
 
-                // Destroy the GameObject if the spline has no points left
                 if (!spline.Knots.Any())
                 {
                     UnityEngine.Object.DestroyImmediate(splineContainer.gameObject);
                     cropped++;
+                    continue;
                 }
+                EditorUtility.SetDirty(splineContainer.gameObject);
             }
 
             var timePassed = DateTime.Now - startTime;
             Debug.Log($"Cropped {cropped} in {(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Split Intersecting", priority = 4)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Split Intersecting", priority = 5)]
         internal static void SplitIntersecting()
         {
             Debug.Log("Split Intersecting...");
@@ -145,6 +154,7 @@ namespace Cuku.MicroWorld
                             newGameObject.transform.SetParent(parent, worldPositionStays: false);
                             var newSplineContainer = newGameObject.AddComponent<SplineContainer>();
                             newSplineContainer.Spline = container.Splines[i];
+                            EditorUtility.SetDirty(newGameObject);
                         }
                         canSplit = true;
                         GameObject.DestroyImmediate(container.gameObject);
@@ -155,7 +165,7 @@ namespace Cuku.MicroWorld
             Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Create Intersections", priority = 5)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Create Intersections", priority = 6)]
         internal static void CreateIntersections()
         {
             Debug.Log("Create Intersections...");
@@ -214,6 +224,7 @@ namespace Cuku.MicroWorld
                     var intersectionObject = new GameObject($"{IntersectionLabel}{count}");
                     intersectionObject.transform.position = intersection.Key;
                     intersectionObject.transform.SetParent(intersectionsParent);
+                    EditorUtility.SetDirty(intersectionObject);
                 }
             }
 
@@ -221,7 +232,7 @@ namespace Cuku.MicroWorld
             Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Connect", priority = 6)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Connect", priority = 7)]
         internal static void Connect()
         {
             GameObject[] selected = Selection.gameObjects;
@@ -264,11 +275,11 @@ namespace Cuku.MicroWorld
                 UnityEngine.Object.DestroyImmediate(selected[i]);
             }
 
-            EditorUtility.SetDirty(targetContainer);
+            EditorUtility.SetDirty(selected[0]);
             Debug.Log($"Connected splines. {totalAdded} knots added to {selected[0].name}.");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Connect Continuous", priority = 7)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Connect Continuous", priority = 8)]
         internal static void ConnectContinuous()
         {
             Debug.Log("Connect Continuous...");
@@ -282,7 +293,7 @@ namespace Cuku.MicroWorld
 
             if (splineContainers.Count < 2)
             {
-                Debug.LogWarning("Please select at least two spline containers to connect.");
+                Debug.LogWarning("Select at least two spline containers to connect!");
                 return;
             }
 
@@ -307,10 +318,11 @@ namespace Cuku.MicroWorld
                         {
                             UnityEngine.Object.DestroyImmediate(targetSpline.gameObject);
                             splineContainers.RemoveAt(j);
-                            j--; // Adjust index after removal
+                            j--;
                             count++;
                             merged = true;
                         }
+                        EditorUtility.SetDirty(baseSpline.gameObject);
                     }
                 }
             } while (merged);
@@ -319,7 +331,7 @@ namespace Cuku.MicroWorld
             Debug.Log($"Connected {count} splines in ({$"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}"})");
         }
 
-        [MenuItem(nameof(MicroWorld) + "/Spline/Smooth", priority = 8)]
+        [MenuItem(nameof(MicroWorld) + "/Spline/Smooth", priority = 9)]
         internal static void Smooth()
         {
             Debug.Log("Smooth Splines...");
@@ -328,7 +340,10 @@ namespace Cuku.MicroWorld
 
             foreach (var splineContainer in Selection.gameObjects.SelectMany(go => go.GetComponentsInChildren<SplineContainer>())
                     .Where(splineContainer => splineContainer != null))
+            {
                 splineContainer.SetTangentMode(TangentMode.AutoSmooth);
+                EditorUtility.SetDirty(splineContainer.gameObject);
+            }
 
             var timePassed = DateTime.Now - startTime;
             Debug.Log($"{(int)timePassed.TotalMinutes:00}:{timePassed.Seconds:00}");

@@ -149,6 +149,9 @@ namespace Cuku.MicroWorld
         public static void PivotAtStart(this SplineContainer container)
             => MovePivot(container, container.transform.TransformPoint(container.Splines[0].Knots.First().Position));
 
+        public static void PivotAtWorldOrigin(this SplineContainer container)
+            => MovePivot(container, Vector3.zero);
+
         public static void MovePivot(this SplineContainer container, Vector3 position)
         {
             var shift = position - container.transform.position;
@@ -332,8 +335,8 @@ namespace Cuku.MicroWorld
         public static SplineContainer CopySplineContainerFrom(this GameObject targetObject, GameObject sourceObject)
         {
             var source = sourceObject.GetComponent<SplineContainer>();
-
             var target = targetObject.GetComponent<SplineContainer>();
+
             if (target == null)
                 target = targetObject.AddComponent<SplineContainer>();
 
@@ -343,25 +346,44 @@ namespace Cuku.MicroWorld
             for (int i = 0; i < source.Splines.Count; i++)
             {
                 var sourceSpline = source.Splines[i];
+                if (sourceSpline.Count == 0)
+                {
+                    Debug.LogWarning($"Skipping empty spline on object {sourceObject.name}");
+                    continue;
+                }
+
                 var newSpline = new Spline();
 
                 foreach (var knot in sourceSpline)
                 {
-                    var newKnot = new BezierKnot
+                    if (!IsValid(knot.Position) || !IsValid(knot.TangentIn) || !IsValid(knot.TangentOut))
+                    {
+                        Debug.LogError($"Invalid knot in {sourceObject.name}, skipping spline.");
+                        newSpline = null;
+                        break;
+                    }
+
+                    newSpline.Add(new BezierKnot
                     {
                         Position = knot.Position,
                         TangentIn = knot.TangentIn,
                         TangentOut = knot.TangentOut,
                         Rotation = knot.Rotation
-                    };
-                    newSpline.Add(newKnot);
+                    });
                 }
 
-                newSpline.Closed = sourceSpline.Closed;
-                target.AddSpline(newSpline);
+                if (newSpline != null)
+                {
+                    newSpline.Closed = sourceSpline.Closed;
+                    target.AddSpline(newSpline);
+                }
             }
 
             return target;
+
+            bool IsValid(Vector3 v) =>
+                !(float.IsNaN(v.x) || float.IsNaN(v.y) || float.IsNaN(v.z) ||
+                  float.IsInfinity(v.x) || float.IsInfinity(v.y) || float.IsInfinity(v.z));
         }
     }
 }

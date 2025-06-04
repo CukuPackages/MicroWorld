@@ -1,6 +1,7 @@
 using JBooth.MicroVerseCore;
 using System;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Splines;
 using static Cuku.MicroWorld.MicroWorld;
@@ -34,38 +35,60 @@ namespace Cuku.MicroWorld
             Debug.Log("Setup Roads...");
 
             var roadAssets = Array.Find(Selection.objects, obj => obj is ScriptableObject) as RoadAssets;
+            if (roadAssets == null || roadAssets.RoadSystem == null)
+            {
+                Debug.LogError("RoadAssets or RoadSystem prefab is missing.");
+                return;
+            }
 
             var roadSystem = PrefabUtility.InstantiatePrefab(
-                    roadAssets.RoadSystem, MicroVerse.instance.transform) as GameObject;
-
-            //var intersectionPositions = Children(IntersectionsParentLabel);
-            //var intersections = new Intersection[intersectionPositions.Length];
-            //for (int i = 0; i < intersectionPositions.Length; i++)
-            //{
-            //    var intersection = intersectionPositions[i];
-            //    var intersectionInstance = PrefabUtility.InstantiatePrefab(
-            //        roadAssets.GetIntersection(intersection.name.Split(IntersectionLabel)[1]),
-            //        roadSystem.transform) as GameObject;
-            //    intersectionInstance.transform.position = intersection.position;
-            //    intersections[i] = intersectionInstance.GetComponent<Intersection>();
-            //}
+                roadAssets.RoadSystem, MicroVerse.instance.transform) as GameObject;
 
             var roadSplines = Children(RoadsParentLabel);
+
             for (int i = 0; i < roadSplines.Length; i++)
             {
-                var road = roadSplines[i];
+                var originalRoad = roadSplines[i];
+
+                if (originalRoad.GetComponent<SplineContainer>() == null)
+                {
+                    Debug.LogWarning($"Skipping object {originalRoad.name}: no SplineContainer found.");
+                    continue;
+                }
+
+                var roadClone = GameObject.Instantiate(originalRoad).gameObject;
+                roadClone.name = originalRoad.name + "_Clone";
+
                 var roadInstance = (PrefabUtility.InstantiatePrefab(
-                    roadAssets.GetRoad("2"),
-                    roadSystem.transform) as GameObject).GetComponent<Road>();
+                    roadAssets.GetRoad("2"), roadSystem.transform) as GameObject).GetComponent<Road>();
+
                 roadInstance.defaultChoiceData.roadPrefab = roadInstance.config.entries[0].prefab;
-                var splineContainer = roadInstance.gameObject.CopySplineContainerFrom(road.gameObject);
+
+                var splineContainer = roadInstance.gameObject.CopySplineContainerFrom(roadClone);
+
+                if (splineContainer == null || splineContainer.Splines.Count == 0)
+                {
+                    Debug.LogError($"SplineContainer copy failed or is empty for {originalRoad.name}");
+                    GameObject.DestroyImmediate(roadInstance.gameObject);
+                    GameObject.DestroyImmediate(roadClone);
+                    continue;
+                }
+
                 splineContainer.SetTangentMode(TangentMode.AutoSmooth);
                 roadInstance.splineContainer.PivotAtStart();
+
                 GameObject.DestroyImmediate(roadInstance.gameObject.GetComponent<MeshRenderer>());
                 GameObject.DestroyImmediate(roadInstance.gameObject.GetComponent<MeshFilter>());
+
+                EditorUtility.SetDirty(roadInstance.gameObject);
+                EditorUtility.SetDirty(splineContainer);
+                EditorUtility.SetDirty(roadSystem);
+
+                GameObject.DestroyImmediate(roadClone);
             }
 
             roadSystem.GetComponent<RoadSystem>().ReGenerateRoads();
+            EditorSceneManager.MarkSceneDirty(roadSystem.scene);
         }
     }
 }
